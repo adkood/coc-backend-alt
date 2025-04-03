@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
-import { PersonalDetails } from "@/api/entity/personal/PersonalDetails";
+import { Users } from "@/api/entity/user/Users";
 import { AppDataSource } from "@/server";
 
 export const sendResetEmail = async (req: Request, res: Response) => {
@@ -10,7 +10,7 @@ export const sendResetEmail = async (req: Request, res: Response) => {
 
     const { toEmail, resetLink } = req.body;
 
-    const personalDetailsRepo = AppDataSource.getRepository(PersonalDetails);
+    const personalDetailsRepo = AppDataSource.getRepository(Users);
 
     const user = await personalDetailsRepo.findOne({ where: { emailAddress: toEmail } });
 
@@ -72,7 +72,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     const { userId } = payload;
 
-    const personalDetailsRepo = AppDataSource.getRepository(PersonalDetails);
+    const personalDetailsRepo = AppDataSource.getRepository(Users);
     const user = await personalDetailsRepo.findOne({ where: { id: userId } });
 
     if (!user) {

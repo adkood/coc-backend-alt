@@ -1,14 +1,11 @@
-import { env } from '@/common/utils/envConfig';
-import { app, logger, httpServer } from '@/server';
-import swaggerUi from 'swagger-ui-express';
-// import swaggerFile from '../src/swagger_output.json'; 
+import dotenv from 'dotenv';
+dotenv.config();
 
-// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
+import { app, logger } from '@/server';
 
-const server = httpServer.listen(env.PORT, () => {
-  const { NODE_ENV, HOST, PORT } = env;
-  logger.info(`Server (${NODE_ENV}) running on port http://${HOST}:${PORT}`);
-  logger.info(`Swagger docs available at http://${HOST}:${PORT}`);
+const server = app.listen(process.env.PORT, () => {
+  logger.info(`Server (${process.env.NODE_ENV}) running on port http://${process.env.HOST}:${process.env.PORT}`);
+  logger.info(`Swagger docs available at http://${process.env.HOST}:${process.env.PORT}`);
 });
 
 const onCloseSignal = () => {

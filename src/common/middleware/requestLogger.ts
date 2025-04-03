@@ -5,7 +5,7 @@ import { getReasonPhrase, StatusCodes } from 'http-status-codes';
 import { LevelWithSilent } from 'pino';
 import { CustomAttributeKeys, Options, pinoHttp } from 'pino-http';
 
-import { env } from '@/common/utils/envConfig';
+// import { env } from '@/common/utils/envConfig';
 
 enum LogLevel {
   Fatal = 'fatal',
@@ -24,9 +24,11 @@ type PinoCustomProps = {
   responseBody: unknown;
 };
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const requestLogger = (options?: Options): RequestHandler[] => {
   const pinoOptions: Options = {
-    enabled: env.isProduction,
+    enabled: isProduction,
     customProps: customProps as unknown as Options['customProps'],
     redact: [],
     genReqId,
@@ -55,7 +57,7 @@ const customProps = (req: Request, res: Response): PinoCustomProps => ({
 });
 
 const responseBodyMiddleware: RequestHandler = (_req, res, next) => {
-  const isNotProduction = !env.isProduction;
+  const isNotProduction = !isProduction;
   if (isNotProduction) {
     const originalSend = res.send;
     res.send = function (content) {

@@ -1,7 +1,12 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 
-export const authenticate = (req: Request, res: Response, next: () => void) => {
+
+interface AuthenticatedRequest extends Request {
+  userId?: string;
+}
+
+export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -10,10 +15,17 @@ export const authenticate = (req: Request, res: Response, next: () => void) => {
 
   const accessToken = authHeader.split(' ')[1];
 
-  jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '', (err: jwt.VerifyErrors | null, payload: any) => {
+  jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '', (err, payload: any) => {
     if (err) {
       return res.status(403).json({ status: 'error', message: 'Need to login again' });
     }
+
+    if (!payload || !payload.id) {
+      return res.status(403).json({ status: 'error', message: 'Invalid token' });
+    }
+
+    // Explicitly cast req as AuthenticatedRequest to allow adding userId
+    (req as AuthenticatedRequest).userId = payload.id;
 
     console.log('authentication payload: ', payload);
     next();

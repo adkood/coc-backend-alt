@@ -16,14 +16,13 @@
 import { Request } from 'express';
 import { rateLimit } from 'express-rate-limit';
 
-import { env } from '@/common/utils/envConfig';
 
 const rateLimiter = rateLimit({
   legacyHeaders: true,
-  limit: env.COMMON_RATE_LIMIT_MAX_REQUESTS,
+  limit: process.env.COMMON_RATE_LIMIT_MAX_REQUESTS as any,
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
-  windowMs: env.COMMON_RATE_LIMIT_WINDOW_MS,
+  windowMs: process.env.COMMON_RATE_LIMIT_WINDOW_MS as any,
   keyGenerator: (req: Request) => req.ip as string,
 });
 

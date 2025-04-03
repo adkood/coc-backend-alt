@@ -2,9 +2,7 @@ import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppDataSource } from '@/server';
-import { createNotification } from '../notifications/notificationController';
-import { Notifications } from '@/api/entity/notifications/Notifications';
-import { PersonalDetails } from '@/api/entity/personal/PersonalDetails';
+import { Users } from '@/api/entity/user/Users';
 
 const generateAccessToken = (user: { id: string }, rememberMe: boolean = false): string => {
   return jwt.sign({ id: user.id }, process.env.ACCESS_SECRET_KEY!, {
@@ -101,8 +99,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const userLoginRepository = AppDataSource.getRepository(PersonalDetails);
-    let user: PersonalDetails | null = null;
+    const userLoginRepository = AppDataSource.getRepository(Users);
+    let user: Users | null = null;
 
     if (token) {
       // Handle token-based verification
@@ -136,7 +134,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       // Find the user by email for regular login
       user = await userLoginRepository.findOne({ where: { emailAddress: email } });
 
-      if (!user || !(await PersonalDetails.validatePassword(password, user.password))) {
+      if (!user || !(await Users.validatePassword(password, user.password))) {
         res.status(401).json({
           status: 'error',
           message: 'Invalid email or password.',
@@ -145,29 +143,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Generate tokens
     const accessToken = generateAccessToken(user, rememberMe);
 
-    // Respond with the access token and user details
     res.status(200).json({
       status: 'success',
       message: 'Logged in successfully.',
       data: {
         accessToken,
         user,
-        // userStatus: user.active,
       },
     });
 
-    // Create a login notification
-    // const notificationRepos = AppDataSource.getRepository(Notifications);
-    // const notification = notificationRepos.create({
-    //   userId: user.id,
-    //   message: 'Welcome to Businessroom! You have successfully logged in.',
-    //   navigation: '/',
-    // });
-
-    // await notificationRepos.save(notification);
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
