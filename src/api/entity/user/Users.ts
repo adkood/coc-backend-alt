@@ -13,14 +13,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-interface Address {
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  pincode: string;
-}
-
 @Entity({ name: 'Users' })
 export class Users extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -58,9 +50,6 @@ export class Users extends BaseEntity {
 
   @Column({ type: 'int', default: 0, nullable: true })
   active!: number;
-
-  @Column({ type: 'varchar', nullable: true })
-  trn !: string;
 
   @Column({ type: 'simple-array', nullable: true })
   gstIns !: string[];

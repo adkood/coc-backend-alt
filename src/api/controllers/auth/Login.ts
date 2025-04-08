@@ -10,80 +10,10 @@ const generateAccessToken = (user: { id: string }, rememberMe: boolean = false):
   });
 };
 
-const generateRefreshToken = (user: { id: string }, rememberMe: boolean = false): string => {
-  return jwt.sign({ id: user.id }, process.env.REFRESH_SECRET_KEY!, {
-    expiresIn: rememberMe ? process.env.JWT_REFRESH_EXPIRES_IN_REMEMBER : process.env.JWT_REFRESH_EXPIRES_IN,
-  });
-};
-
-// export const login = async (req: Request, res: Response,): Promise<void> => {
-//   try {
-//     const { email, password, rememberMe = false } = req.body;
-
-//     // Validate input
-//     if (!email || !password) {
-//       res.status(400).json({
-//         status: 'fail',
-//         message: 'Please provide an email and password.',
-//       });
-//       return;
-//     }
-
-//     const userLoginRepository = AppDataSource.getRepository(PersonalDetails);
-
-//     // Find the user by email
-//     const user: PersonalDetails | null = await userLoginRepository.findOne({ where: { emailAddress:email } });
-
-//     // Check if user exists and password is valid
-//     if (!user || !(await PersonalDetails.validatePassword(password, user.password))) {
-//       res.status(401).json({
-//         status: 'error',
-//         message: 'Invalid email or password.',
-//       });
-//       return;
-//     }
-
-//     // Generate tokens
-//     const accessToken = generateAccessToken(user, rememberMe);
-//     // const refreshToken = generateRefreshToken(user, rememberMe);
-
-//     // Set refresh token as an HTTP-only cookie
-//     // res.cookie('refreshToken', refreshToken, {
-//     //   httpOnly: true,
-//     //   secure: process.env.NODE_ENV === 'production',
-//     //   sameSite: 'strict',
-//     //   maxAge: rememberMe
-//     //     ? parseInt(process.env.JWT_REFRESH_COOKIE_MAX_AGE_REMEMBER!, 10)
-//     //     : parseInt(process.env.JWT_REFRESH_COOKIE_MAX_AGE!, 10),
-//     // });
-
-//     // Respond with the access token and user details
-//     res.status(200).json({
-//       status: 'success',
-//       message: 'Logged in successfully.',
-//       data: {
-//         accessToken,
-//         user
-//       },
-//     });
-
-//     const notificationRepos = AppDataSource.getRepository(Notifications);
-//     const notification = notificationRepos.create({
-//       userId: user.id,
-//       message: 'Welcome to our platform!, You have successfully logged in',
-//       navigation: '/',
-//     });
-
-//     // Save the notification
-//     await notificationRepos.save(notification);
-
-//   } catch (error) {
-//     console.error('Login error:', error);
-//     res.status(500).json({
-//       status: 'error',
-//       message: 'Something went wrong! Please try again later.',
-//     });
-//   }
+// const generateRefreshToken = (user: { id: string }, rememberMe: boolean = false): string => {
+//   return jwt.sign({ id: user.id }, process.env.REFRESH_SECRET_KEY!, {
+//     expiresIn: rememberMe ? process.env.JWT_REFRESH_EXPIRES_IN_REMEMBER : process.env.JWT_REFRESH_EXPIRES_IN,
+//   });
 // };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
@@ -161,4 +91,61 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       message: 'Something went wrong! Please try again later.',
     });
   }
+};
+
+export const gstLogin = async (req: Request, res: Response) => {
+    try {
+        const { userId, gstIn } = req.body;
+
+        if (!userId || !gstIn) {
+            return res.status(400).json({
+                success: "fail",
+                message: 'User ID and GSTIN are required'
+            });
+        }
+
+        const userRepo = AppDataSource.getRepository(Users);
+        const user = await userRepo.findOne({ 
+            where: { id: userId },
+            select: ['id', 'gstIns', 'userName', 'emailAddress'] // Only select needed fields
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: "fail",
+                message: 'User not found'
+            });
+        }
+
+        // Check if GSTIN exists in user's gstIns array
+        if (!user.gstIns || !user.gstIns.includes(gstIn)) {
+            return res.status(403).json({
+                success: "fail",
+                message: 'This GSTIN is not registered with this user'
+            });
+        }
+
+        // Create JWT token
+        // const token = jwt.sign(
+        //     { id: user.id, userName: user.userName, email: user.emailAddress },
+        //     process.env.JWT_SECRET || 'your-secret-key',
+        //     { expiresIn: '1h' }
+        // );
+
+        const accessToken = generateAccessToken(user);
+
+        return res.status(200).json({
+            success: "success",
+            message: 'GST authentication successful',
+            gstToken: accessToken,
+        });
+
+    } catch (error: any) {
+        console.error('Error in gstLogin:', error);
+        return res.status(500).json({
+            success: "error",
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
 };

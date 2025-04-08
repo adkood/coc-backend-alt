@@ -14,8 +14,10 @@ import requestLogger from '@/common/middleware/requestLogger';
 
 import authRouter from '../src/api/routes/auth/AuthRoutes';
 import usersRouter from '../src/api/routes/users/UserRoutes';
+import gstRouter from '../src/api/routes/gst/GstRoutes';
 
 import { Users } from './api/entity/user/Users';
+import { GstRegistrations } from './api/entity/gst/GstRegistrations';
 
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -30,8 +32,9 @@ const AppDataSource = new DataSource({
   database: process.env.NODE_ENV === 'production' ? process.env.DEV_AWS_DB_NAME : process.env.LOCAL_DB_NAME,
   entities: [
     Users,
+    GstRegistrations
   ],
-  synchronize: false,
+  synchronize: true,
 });
 
 // Initialize the DataSource
@@ -60,6 +63,7 @@ app.use(express.json());
 // Routes mounting
 app.use('practice/api/v1/auth', authRouter);
 app.use('practice/api/v1/users', usersRouter);
+app.use('practice/api/v1/gst', gstRouter);
 
 // Test route
 app.get('/', (req, res) => {
