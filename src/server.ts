@@ -25,11 +25,11 @@ const app: Express = express();
 // Create a DataSource instance
 const AppDataSource = new DataSource({
   type: 'mysql',
-  host: process.env.NODE_ENV === 'production' ? process.env.DEV_AWS_HOST : process.env.LOCAL_DB_HOST,
+  host: process.env.NODE_ENV === 'production' ? process.env.PROD_DB_HOST : process.env.LOCAL_DB_HOST,
   port: 3306,
-  username: process.env.NODE_ENV === 'production' ? process.env.DEV_AWS_USERNAME : process.env.LOCAL_DB_USERNAME,
-  password: process.env.NODE_ENV === 'production' ? process.env.DEV_AWS_PASSWORD : process.env.LOCAL_DB_PASSWORD,
-  database: process.env.NODE_ENV === 'production' ? process.env.DEV_AWS_DB_NAME : process.env.LOCAL_DB_NAME,
+  username: process.env.NODE_ENV === 'production' ? process.env.PROD_DB_USERNAME : process.env.LOCAL_DB_USERNAME,
+  password: process.env.NODE_ENV === 'production' ? process.env.PROD_DB_PASSWORD : process.env.LOCAL_DB_PASSWORD,
+  database: process.env.NODE_ENV === 'production' ? process.env.PROD_DB_NAME : process.env.LOCAL_DB_NAME,
   entities: [
     Users,
     GstRegistrations
