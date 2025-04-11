@@ -2,8 +2,6 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '@/server';
 import validator from 'validator';
 import { Users } from '@/api/entity/user/Users';
-import nodemailer from 'nodemailer';
-import jwt from 'jsonwebtoken';
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
   const queryRunner = AppDataSource.createQueryRunner();
@@ -15,14 +13,13 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     const {
       firstName,
       lastName,
-      emailAddress,
+      email,
       password,
-      dob,
       createdBy = 'system',
       updatedBy = 'system',
     } = req.body;
 
-    if (!firstName || !lastName || !emailAddress || !password ) {
+    if (!firstName || !lastName || !email || !password ) {
       res.status(400).json({
         status: 'error',
         message: 'All fields are required: first name, last name, email address and password.',
@@ -30,7 +27,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (!validator.isEmail(emailAddress)) {
+    if (!validator.isEmail(email)) {
       res.status(400).json({
         status: 'error',
         message: 'Invalid email address format.',
@@ -66,12 +63,13 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     const newUser = userLoginRepository.create({
       firstName,
       lastName,
-      emailAddress,
+      emailAddress: email,
       password,
-      dob,
       createdBy,
       updatedBy,
     });
+
+    await userLoginRepository.save(newUser);
 
     await queryRunner.commitTransaction();
 

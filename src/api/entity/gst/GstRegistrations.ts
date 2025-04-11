@@ -18,6 +18,9 @@ export class GstRegistrations extends BaseEntity {
     @PrimaryGeneratedColumn('uuid')
     id!: string;
 
+    @Column({ type: 'uuid' })
+    userId!: string;
+
     @Column({ type: 'varchar', nullable: true })
     userType!: string;
 
@@ -88,7 +91,7 @@ export class GstRegistrations extends BaseEntity {
     }>;
 
     @Column({ type: 'json', nullable: true })
-    authorizedSignotory!: Array<{
+    authorizedSignatory!: Array<{
         firstName: string;
         middleName: string;
         lastName: string;
@@ -124,7 +127,7 @@ export class GstRegistrations extends BaseEntity {
     }>;
 
     @Column({ type: 'json', nullable: true })
-    authorizedSignatory!: {
+    authorizedRepresentative!: {
         type: string;
         enrollmentId: string;
         firstName: string;
@@ -215,6 +218,17 @@ export class GstRegistrations extends BaseEntity {
 
     @Column({ type: 'boolean', nullable: true })
     isAdhaarAuth!: boolean;
+
+    @Column({ type: 'json', nullable: true })
+    verification !: {
+        signatory: string,
+        place: string,
+        designation: string,
+        agreed: boolean,
+    }
+
+    @Column({ type: 'varchar', nullable: true })
+    gstIn !: boolean;
 
     @Column({ type: 'varchar', default: 'system' })
     createdBy!: string;

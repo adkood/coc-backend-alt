@@ -61,9 +61,9 @@ app.use(requestLogger);
 app.use(express.json());
 
 // Routes mounting
-app.use('practice/api/v1/auth', authRouter);
-app.use('practice/api/v1/users', usersRouter);
-app.use('practice/api/v1/gst', gstRouter);
+app.use('/practice/api/v1/auth', authRouter);
+app.use('/practice/api/v1/users', usersRouter);
+app.use('/practice/api/v1/gst', gstRouter);
 
 // Test route
 app.get('/', (req, res) => {

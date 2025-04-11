@@ -5,30 +5,6 @@ interface AuthenticatedRequest extends Request {
     userId?: string
 }
 
-export const updateTRN = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-        const userId = req.userId;
-        const { trn } = req.body;
-
-        if (!trn) {
-            return res.status(400).json({ status: "error", message: 'TRN is required' });
-        }
-
-        const user = await Users.findOne({ where: { id: userId } });
-        if (!user) {
-            return res.status(404).json({ status: "error", message: 'User not found' });
-        }
-
-        user.trn = trn;
-        await user.save();
-
-        return res.status(200).json({ status: "success", message: 'TRN updated successfully', data: { trn } });
-    } catch (error) {
-        console.error('Error updating TRN:', error);
-        return res.status(500).json({ message: 'Internal server error' });
-    }
-};
-
 export const addGSTIN = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const userId = req.userId;

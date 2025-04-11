@@ -38,6 +38,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       try {
         payload = jwt.verify(token as string, process.env.ACCESS_SECRET_KEY!);
       } catch (err) {
+        console.log(err);
         res.status(400).json({
           status: 'error',
           message: 'Invalid or expired token.',
@@ -93,59 +94,55 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const gstLogin = async (req: Request, res: Response) => {
-    try {
-        const { userId, gstIn } = req.body;
+interface AuthenticatedRequest extends Request {
+  userId?: string
+}
 
-        if (!userId || !gstIn) {
-            return res.status(400).json({
-                success: "fail",
-                message: 'User ID and GSTIN are required'
-            });
-        }
+export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { gstIn } = req.body;
 
-        const userRepo = AppDataSource.getRepository(Users);
-        const user = await userRepo.findOne({ 
-            where: { id: userId },
-            select: ['id', 'gstIns', 'userName', 'emailAddress'] // Only select needed fields
-        });
-
-        if (!user) {
-            return res.status(404).json({
-                success: "fail",
-                message: 'User not found'
-            });
-        }
-
-        // Check if GSTIN exists in user's gstIns array
-        if (!user.gstIns || !user.gstIns.includes(gstIn)) {
-            return res.status(403).json({
-                success: "fail",
-                message: 'This GSTIN is not registered with this user'
-            });
-        }
-
-        // Create JWT token
-        // const token = jwt.sign(
-        //     { id: user.id, userName: user.userName, email: user.emailAddress },
-        //     process.env.JWT_SECRET || 'your-secret-key',
-        //     { expiresIn: '1h' }
-        // );
-
-        const accessToken = generateAccessToken(user);
-
-        return res.status(200).json({
-            success: "success",
-            message: 'GST authentication successful',
-            gstToken: accessToken,
-        });
-
-    } catch (error: any) {
-        console.error('Error in gstLogin:', error);
-        return res.status(500).json({
-            success: "error",
-            message: 'Internal server error',
-            error: error.message
-        });
+    if (!userId || !gstIn) {
+      return res.status(400).json({
+        success: "fail",
+        message: 'User ID and GSTIN are required'
+      });
     }
+
+    const userRepo = AppDataSource.getRepository(Users);
+    const user = await userRepo.findOne({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: "fail",
+        message: 'User not found'
+      });
+    }
+
+    if (!user.gstIns || !user.gstIns.includes(gstIn)) {
+      return res.status(403).json({
+        success: "fail",
+        message: 'This GSTIN is not registered with this user'
+      });
+    }
+
+    // const accessToken = generateAccessToken(user);
+
+    return res.status(200).json({
+      success: "success",
+      message: 'GST authentication successful',
+      gstIn: gstIn,
+    });
+
+  } catch (error: any) {
+    console.error('Error in gstLogin:', error);
+    return res.status(500).json({
+      success: "error",
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
 };

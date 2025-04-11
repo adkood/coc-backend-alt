@@ -1,88 +1,96 @@
 import { Request, Response } from 'express';
 import { GstRegistrations } from '../../entity/gst/GstRegistrations';
 import { AppDataSource } from '@/server';
+import { Users } from '@/api/entity/user/Users';
 
 interface AuthenticatedRequest extends Request {
-    userId ?: string
+    userId?: string
 }
 
 export const createOrUpdateGstRegistration = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const gstRepo = AppDataSource.getRepository(GstRegistrations);
+        const userRepo = AppDataSource.getRepository(Users);
+        const userId = req.userId;
         const registrationData = req.body;
 
-        const userId = req.userId;
-        
-        // Validate required fields
-        if (!registrationData.businessName || !registrationData.pan) {
-            return res.status(400).json({
-                success: false,
-                message: 'Business name and PAN are required fields'
-            });
-        }
-
         let registration: any;
-        
-        if (registrationData.id) {
-            // Update existing record
-            registration = await gstRepo.findOne(registrationData.id);
-            
+
+        console.log("******************ID******************", registrationData?.id);
+        if (registrationData && registrationData.id) {
+            registration = await gstRepo.findOne({
+                where: { id: registrationData.id, userId }
+            });
+
             if (!registration) {
                 return res.status(404).json({
-                    success: false,
+                    success: "fail",
                     message: 'GST registration not found'
                 });
             }
-            
+
             gstRepo.merge(registration, registrationData);
-            registration.updatedBy = userId || 'system'; 
+            registration.updatedBy = 'system';
         } else {
-            registration = gstRepo.create(registrationData);
-            registration.createdBy = userId || 'system';
+            registration = gstRepo.create({
+                ...registrationData,
+                userId,
+                createdBy: 'system'
+            });
+        }
+        console.log(registration);
+        const result = await gstRepo.save(registration);
+
+        if (registrationData?.gstIn) {
+            const user = await userRepo.findOne({ where: { id: userId } });
+
+            if (!user) {
+                return res.status(404).json({ success: "error", message: 'User not found' });
+            }
+
+            if (!Array.isArray(user.gstIns)) {
+                user.gstIns = [];
+            }
+
+            if (user.gstIns.length < 2 && !user.gstIns.includes(registrationData.gstIn)) {
+                user.gstIns.push(registrationData.gstIn);
+                await userRepo.save(user);
+            }
         }
 
-        const result = await gstRepo.save(registration);
-        
-        res.status(200).json({
-            success: true,
-            message: registrationData.id ? 'GST registration updated successfully' : 'GST registration created successfully',
+        return res.status(200).json({
+            success: "success",
+            message: registrationData?.id
+                ? 'GST registration updated successfully'
+                : 'GST registration created successfully',
             data: result
         });
 
     } catch (error: any) {
         console.error('Error in createOrUpdateGstRegistration:', error);
-        res.status(500).json({
-            success: false,
+        return res.status(500).json({
+            success: "error",
             message: 'Failed to process GST registration',
             error: error.message
         });
     }
 };
 
-// Additional helper controller for getting a registration
-// export const getGstRegistration = async (req: Request, res: Response) => {
-//     try {
-//         const gstRepo = getRepository(GstRegistrations);
-//         const registration = await gstRepo.findOne(req.params.id);
-        
-//         if (!registration) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: 'GST registration not found'
-//             });
-//         }
-        
-//         res.status(200).json({
-//             success: true,
-//             data: registration
-//         });
-        
-//     } catch (error) {
-//         console.error('Error in getGstRegistration:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: 'Failed to fetch GST registration',
-//             error: error.message
-//         });
-//     }
-// };
+export const getGstIns = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const userId = req.userId;
+        const userRepo = AppDataSource.getRepository(Users);
+        const user = await userRepo.findOne({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({ success: "error", message: 'User not found' });
+        }
+        res.status(200).json({ status: "success", message: "", data: { gstIns: user?.gstIns } });
+    }
+    catch (error: any) {
+        return res.status(500).json({
+            success: "error",
+            message: 'Failed to process GST registration',
+            error: error.message
+        });
+    }
+}
