@@ -52,10 +52,11 @@ app.use(
     origin: function (origin, callback) {
       callback(null, true); // Allow all origins
     },
-    credentials: true,
-    exposedHeaders: ['set-cookie']
+    credentials: true
+    // exposedHeaders: ['set-cookie']
   })
 );
+
 app.use(helmet());
 // app.use(rateLimiter);
 app.use(requestLogger);

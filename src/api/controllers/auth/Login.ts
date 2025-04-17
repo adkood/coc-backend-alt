@@ -76,12 +76,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const accessToken = generateAccessToken(user, rememberMe);
 
+    // for development
     const cookieOptions: any = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'none',
+      secure: false,
+      sameSite: 'lax',
       path: '/',
     };
+
+    // for production
+    // const cookieOptions: any = {
+    //   httpOnly: true,
+    //   secure: true, 
+    //   sameSite: 'none',
+    //   path: '/',
+    // };
 
     res.cookie('token', accessToken, cookieOptions);
 
@@ -141,10 +150,9 @@ export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
 
     const cookieOptions: any = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', 
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: false,
+      sameSite: 'lax',
       path: '/',
-      // domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : undefined
     };
 
     res.cookie('gstIn', gstIn, cookieOptions);
