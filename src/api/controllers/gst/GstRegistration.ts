@@ -4,7 +4,8 @@ import { AppDataSource } from '@/server';
 import { Users } from '@/api/entity/user/Users';
 
 interface AuthenticatedRequest extends Request {
-    userId?: string
+    userId?: string,
+    gstIn? : string,
 }
 
 export const createOrUpdateGstRegistration = async (req: AuthenticatedRequest, res: Response) => {
@@ -48,11 +49,11 @@ export const createOrUpdateGstRegistration = async (req: AuthenticatedRequest, r
                 return res.status(404).json({ success: "error", message: 'User not found' });
             }
 
-            if (!Array.isArray(user.gstIns)) {
+            if (!user.gstIns) {
                 user.gstIns = [];
             }
 
-            if (user.gstIns.length < 2 && !user.gstIns.includes(registrationData.gstIn)) {
+            if (user?.gstIns?.length < 2 && !user.gstIns.includes(registrationData.gstIn)) {
                 user.gstIns.push(registrationData.gstIn);
                 await userRepo.save(user);
             }
@@ -84,7 +85,7 @@ export const getGstIns = async (req: AuthenticatedRequest, res: Response) => {
         if (!user) {
             return res.status(404).json({ success: "error", message: 'User not found' });
         }
-        res.status(200).json({ status: "success", message: "", data: { gstIns: user?.gstIns } });
+        res.status(200).json({ status: "success", message: "All GstIns recieved", data: { gstIns: user?.gstIns } });
     }
     catch (error: any) {
         return res.status(500).json({

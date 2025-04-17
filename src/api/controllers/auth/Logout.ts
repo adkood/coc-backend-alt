@@ -1,18 +1,22 @@
 import { Request, Response } from 'express';
 
-import { AppDataSource } from '@/server';
 
-export const logout = async (req: Request, res: Response): Promise<void> => {
+interface AuthenticatedRequest extends Request {
+  userId?: string,
+  gstIn?: string,
+}
+
+export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { userId } = req.body;
+    const userId = req.userId;
 
     if (!userId) {
       res.status(400).json({ status: 'error', message: 'UserId is required' });
       return;
     }
 
-    // Clear cookies
-    res.clearCookie('refreshToken');
+    res.clearCookie('token');
+    res.clearCookie('gstIn');
 
     res.status(200).json({ status: 'success', message: 'Logged out successfully' });
   } catch (error) {

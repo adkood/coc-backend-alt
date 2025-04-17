@@ -34,7 +34,7 @@ const AppDataSource = new DataSource({
     Users,
     GstRegistrations
   ],
-  synchronize: true,
+  synchronize: false,
 });
 
 // Initialize the DataSource
@@ -56,9 +56,10 @@ app.use(
   })
 );
 app.use(helmet());
-app.use(rateLimiter);
+// app.use(rateLimiter);
 app.use(requestLogger);
 app.use(express.json());
+app.use(cookieParser());
 
 // Routes mounting
 app.use('/practice/v1/auth', authRouter);

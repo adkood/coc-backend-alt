@@ -76,6 +76,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const accessToken = generateAccessToken(user, rememberMe);
 
+    const cookieOptions: any = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', 
+      sameSite: 'lax', // helps with CSRF protection
+      maxAge: 24 * 60 * 60 * 1000
+    };
+    
+    res.cookie('token', accessToken, cookieOptions);
+
     res.status(200).json({
       status: 'success',
       message: 'Logged in successfully.',
@@ -95,7 +104,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 };
 
 interface AuthenticatedRequest extends Request {
-  userId?: string
+  userId?: string,
+  gstIn?: string
 }
 
 export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
@@ -116,7 +126,7 @@ export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: "fail",
         message: 'User not found'
       });
@@ -129,7 +139,15 @@ export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // const accessToken = generateAccessToken(user);
+    const cookieOptions: any = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', 
+      sameSite: 'lax', // helps with CSRF protection
+      maxAge: 24 * 60 * 60 * 1000
+    };
+    
+    res.cookie('gstIn', gstIn, cookieOptions);
+
 
     return res.status(200).json({
       success: "success",

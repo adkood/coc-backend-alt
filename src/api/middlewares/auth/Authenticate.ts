@@ -3,84 +3,100 @@ import { AppDataSource } from '@/server';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 
-
 interface AuthenticatedRequest extends Request {
   userId?: string;
+  gstIn?: string;
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers['authorization'];
+  // Get token from cookies instead of Authorization header
+  const accessToken = req.cookies?.token;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ status: 'error', message: 'You are not logged in' });
+  console.log(accessToken);
+
+  if (!accessToken) {
+    return res.status(401).json({ 
+      status: 'error', 
+      message: 'You are not logged in' 
+    });
   }
 
-  const accessToken = authHeader.split(' ')[1];
-
-  jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '', (err, payload: any) => {
+  jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '', (err: any, payload: any) => {
     if (err) {
-      return res.status(403).json({ status: 'error', message: 'Need to login again' });
+      
+      res.clearCookie('token');
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'Session expired, please login again' 
+      });
     }
 
     if (!payload || !payload.id) {
-      return res.status(403).json({ status: 'error', message: 'Invalid token' });
+      res.clearCookie('token');
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'Invalid session' 
+      });
     }
 
-    // Explicitly cast req as AuthenticatedRequest to allow adding userId
     (req as AuthenticatedRequest).userId = payload.id;
-
-    console.log('authentication payload: ', payload);
     next();
   });
 };
 
-export const gstAuthenticate = async (req: Request, res: Response, next: NextFunction) => {
-  const authReq = req as AuthenticatedRequest;
+// export const gstAuthenticate = async (req: Request, res: Response, next: NextFunction) => {
+//   const authReq = req as AuthenticatedRequest;
 
-  // 1. First check if user is authenticated
-  if (!authReq.userId) {
-    return res.status(401).json({ status: 'error', message: 'User not authenticated' });
-  }
+//   if (!authReq.userId) {
+//     return res.status(401).json({ 
+//       status: 'error', 
+//       message: 'User not authenticated' 
+//     });
+//   }
 
-  const gstHeader: any = req.headers['gst-auth'];
-  if (!gstHeader || !gstHeader.startsWith('GST ')) {
-    return res.status(401).json({
-      status: 'error',
-      message: 'GST authentication required'
-    });
-  }
+//   const gstToken = req.cookies.gstIn;
 
-  const gstToken = gstHeader.split(' ')[1];
+//   if (!gstToken) {
+//     return res.status(401).json({
+//       status: 'error',
+//       message: 'GST authentication required'
+//     });
+//   }
 
-  try {
-    // 3. Verify GST token
-    const payload: any = jwt.verify(gstToken, process.env.GST_SECRET_KEY || '');
-    if (!payload || !payload.gstIn) {
-      return res.status(403).json({ status: 'error', message: 'Invalid GST token' });
-    }
+//   try {
+//     const payload: any = jwt.verify(gstToken, process.env.GST_SECRET_KEY || '');
+//     if (!payload || !payload.gstIn) {
+//       res.clearCookie('gstToken');
+//       return res.status(403).json({ 
+//         status: 'error', 
+//         message: 'Invalid GST session' 
+//       });
+//     }
 
-    // 4. Verify GSTIN belongs to user
-    const userRepo = AppDataSource.getRepository(Users);
-    const user = await userRepo.findOne({
-      where: { id: authReq.userId },
-      select: ['id', 'gstIns']
-    });
+//     // Verify GSTIN belongs to user
+//     const userRepo = AppDataSource.getRepository(Users);
+//     const user = await userRepo.findOne({
+//       where: { id: authReq.userId },
+//       select: ['id', 'gstIns']
+//     });
 
-    if (!user || !user.gstIns || !user.gstIns.includes(payload.gstIn)) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'GSTIN not registered to this user'
-      });
-    }
+//     if (!user || !user.gstIns || !user.gstIns.includes(payload.gstIn)) {
+//       res.clearCookie('gstToken');
+//       return res.status(403).json({
+//         status: 'error',
+//         message: 'GSTIN not registered to this user'
+//       });
+//     }
 
-    // 5. Attach GSTIN to request
-    authReq.userId = payload.gstIn;
-    next();
+//     // Attach GSTIN to request
+//     authReq.gstIn = payload.gstIn;
+//     next();
 
-  } catch (err) {
-    return res.status(403).json({
-      status: 'error',
-      message: 'Invalid or expired GST token'
-    });
-  }
-};
+//   } catch (err) {
+//     res.clearCookie('gstToken');
+//     return res.status(403).json({
+//       status: 'error',
+//       message: 'Invalid or expired GST session'
+//     });
+//   }
+// };
