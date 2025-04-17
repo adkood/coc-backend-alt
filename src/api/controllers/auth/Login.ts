@@ -79,7 +79,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const cookieOptions: any = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', 
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'none',
       path: '/',
     };
 
