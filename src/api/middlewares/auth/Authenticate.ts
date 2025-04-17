@@ -12,7 +12,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   // Get token from cookies instead of Authorization header
   const accessToken = req.cookies?.token;
 
-  console.log(accessToken);
+  console.log(req.cookies);
 
   if (!accessToken) {
     return res.status(401).json({ 

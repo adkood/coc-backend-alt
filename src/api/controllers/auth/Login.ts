@@ -79,11 +79,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // for development
     const cookieOptions: any = {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: false, 
+      sameSite: 'lax', 
       path: '/',
     };
-
+    
     // for production
     // const cookieOptions: any = {
     //   httpOnly: true,
