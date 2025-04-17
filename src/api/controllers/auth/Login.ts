@@ -79,10 +79,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const cookieOptions: any = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'lax', // helps with CSRF protection
-      maxAge: 24 * 60 * 60 * 1000
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     };
-    
+
     res.cookie('token', accessToken, cookieOptions);
 
     res.status(200).json({
@@ -142,10 +141,10 @@ export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
     const cookieOptions: any = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'lax', // helps with CSRF protection
-      maxAge: 24 * 60 * 60 * 1000
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      // domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : undefined
     };
-    
+
     res.cookie('gstIn', gstIn, cookieOptions);
 
 
