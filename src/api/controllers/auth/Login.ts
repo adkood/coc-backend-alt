@@ -80,6 +80,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', 
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
     };
 
     res.cookie('token', accessToken, cookieOptions);
@@ -142,6 +143,7 @@ export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', 
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
       // domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : undefined
     };
 

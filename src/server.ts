@@ -53,6 +53,7 @@ app.use(
       callback(null, true); // Allow all origins
     },
     credentials: true,
+    exposedHeaders: ['set-cookie']
   })
 );
 app.use(helmet());
