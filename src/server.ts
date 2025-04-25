@@ -18,6 +18,7 @@ import gstRouter from '../src/api/routes/gst/GstRoutes';
 
 import { Users } from './api/entity/user/Users';
 import { GstRegistrations } from './api/entity/gst/GstRegistrations';
+import { Gstr1 } from './api/entity/gst/Gstr1';
 
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -32,9 +33,10 @@ const AppDataSource = new DataSource({
   database: process.env.NODE_ENV === 'production' ? process.env.PROD_DB_NAME : process.env.LOCAL_DB_NAME,
   entities: [
     Users,
-    GstRegistrations
+    GstRegistrations,
+    Gstr1
   ],
-  synchronize: false,
+  synchronize: true,
 });
 
 // Initialize the DataSource

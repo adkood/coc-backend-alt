@@ -228,7 +228,7 @@ export class GstRegistrations extends BaseEntity {
     }
 
     @Column({ type: 'varchar', nullable: true })
-    gstIn !: boolean;
+    gstIn !: string;
 
     @Column({ type: 'varchar', default: 'system' })
     createdBy!: string;

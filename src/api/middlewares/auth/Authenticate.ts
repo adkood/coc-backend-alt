@@ -44,59 +44,50 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   });
 };
 
-// export const gstAuthenticate = async (req: Request, res: Response, next: NextFunction) => {
-//   const authReq = req as AuthenticatedRequest;
+export const gstAuthenticate = async (req: Request, res: Response, next: NextFunction) => {
+  const authReq = req as AuthenticatedRequest;
 
-//   if (!authReq.userId) {
-//     return res.status(401).json({ 
-//       status: 'error', 
-//       message: 'User not authenticated' 
-//     });
-//   }
+  if (!authReq.userId) {
+    return res.status(401).json({ 
+      status: 'error', 
+      message: 'User not authenticated' 
+    });
+  }
 
-//   const gstToken = req.cookies.gstIn;
+  const gstIn = req.cookies.gstIn;
 
-//   if (!gstToken) {
-//     return res.status(401).json({
-//       status: 'error',
-//       message: 'GST authentication required'
-//     });
-//   }
+  if (!gstIn) {
+    return res.status(401).json({
+      status: 'error',
+      message: 'GSTIn required'
+    });
+  }
 
-//   try {
-//     const payload: any = jwt.verify(gstToken, process.env.GST_SECRET_KEY || '');
-//     if (!payload || !payload.gstIn) {
-//       res.clearCookie('gstToken');
-//       return res.status(403).json({ 
-//         status: 'error', 
-//         message: 'Invalid GST session' 
-//       });
-//     }
+  try {
+    
+    // Verify GSTIN belongs to user
+    const userRepo = AppDataSource.getRepository(Users);
+    const user = await userRepo.findOne({
+      where: { id: authReq.userId },
+      select: ['id', 'gstIns']
+    });
 
-//     // Verify GSTIN belongs to user
-//     const userRepo = AppDataSource.getRepository(Users);
-//     const user = await userRepo.findOne({
-//       where: { id: authReq.userId },
-//       select: ['id', 'gstIns']
-//     });
+    if (!user || !user.gstIns || !user.gstIns.includes(gstIn)) {
+      res.clearCookie('gstToken');
+      return res.status(403).json({
+        status: 'error',
+        message: 'GSTIN not registered to this user'
+      });
+    }
 
-//     if (!user || !user.gstIns || !user.gstIns.includes(payload.gstIn)) {
-//       res.clearCookie('gstToken');
-//       return res.status(403).json({
-//         status: 'error',
-//         message: 'GSTIN not registered to this user'
-//       });
-//     }
+    authReq.gstIn = gstIn;
+    next();
 
-//     // Attach GSTIN to request
-//     authReq.gstIn = payload.gstIn;
-//     next();
-
-//   } catch (err) {
-//     res.clearCookie('gstToken');
-//     return res.status(403).json({
-//       status: 'error',
-//       message: 'Invalid or expired GST session'
-//     });
-//   }
-// };
+  } catch (err) {
+    res.clearCookie('gstToken');
+    return res.status(403).json({
+      status: 'error',
+      message: 'Invalid or expired GST session'
+    });
+  }
+};
