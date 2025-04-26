@@ -15,11 +15,12 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       lastName,
       email,
       password,
+      enrollmentNumber,
       createdBy = 'system',
       updatedBy = 'system',
     } = req.body;
 
-    if (!firstName || !lastName || !email || !password ) {
+    if (!firstName || !lastName || !email || !password || !enrollmentNumber ) {
       res.status(400).json({
         status: 'error',
         message: 'All fields are required: first name, last name, email address and password.',
@@ -58,6 +59,15 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const enrollmentNumberRegex = /^(COC|Bmv)\d{11}$/;
+    if (!enrollmentNumberRegex.test(enrollmentNumber)) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Invalid enrollment number format.',
+      });
+      return;
+    }
+
     const userLoginRepository = queryRunner.manager.getRepository(Users);
 
     const newUser = userLoginRepository.create({
@@ -65,6 +75,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       lastName,
       emailAddress: email,
       password,
+      enrollmentNumber,
       createdBy,
       updatedBy,
     });

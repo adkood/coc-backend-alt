@@ -75,6 +75,9 @@ export class Users extends BaseEntity {
   })
   updatedAt!: Date;
 
+  @Column({ type: "varchar" })
+  enrollmentNumber !: string;
+
   @BeforeInsert()
   async hashPasswordBeforeInsert() {
     this.id = this.generateUUID();

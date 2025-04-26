@@ -36,7 +36,7 @@ const AppDataSource = new DataSource({
     GstRegistrations,
     Gstr1
   ],
-  synchronize: true,
+  synchronize: false,
 });
 
 // Initialize the DataSource
