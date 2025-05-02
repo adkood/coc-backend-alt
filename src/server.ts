@@ -19,6 +19,7 @@ import gstRouter from '../src/api/routes/gst/GstRoutes';
 import { Users } from './api/entity/user/Users';
 import { GstRegistrations } from './api/entity/gst/GstRegistrations';
 import { Gstr1 } from './api/entity/gst/Gstr1';
+import { Gstr3b } from './api/entity/gst/Gstr3b';
 
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -34,7 +35,8 @@ const AppDataSource = new DataSource({
   entities: [
     Users,
     GstRegistrations,
-    Gstr1
+    Gstr1,
+    Gstr3b
   ],
   synchronize: false,
 });
