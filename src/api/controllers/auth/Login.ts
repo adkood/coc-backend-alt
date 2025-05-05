@@ -47,7 +47,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
 
       const { userId } = payload;
-      user = await userLoginRepository.findOne({ where: { id: userId } });
+      user = await userLoginRepository.findOne({ where: { id: userId }, select: ['id','gstIns' ,'emailAddress', 'mobileNumber', 'firstName', 'lastName', 'enrollmentNumber', 'enrollmentType'] });
 
       if (!user) {
         res.status(404).json({
@@ -79,11 +79,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // for development
     const cookieOptions: any = {
       httpOnly: true,
-      secure: false, 
-      sameSite: 'lax', 
+      secure: false,
+      sameSite: 'lax',
       path: '/',
     };
-    
+
     // for production
     // const cookieOptions: any = {
     //   httpOnly: true,

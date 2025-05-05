@@ -78,6 +78,9 @@ export class Users extends BaseEntity {
   @Column({ type: "varchar" })
   enrollmentNumber !: string;
 
+  @Column({ type: "enum", enum: ["basic", "practice"]})
+  enrollmentType !: 'basic' | 'practice';
+
   @BeforeInsert()
   async hashPasswordBeforeInsert() {
     this.id = this.generateUUID();

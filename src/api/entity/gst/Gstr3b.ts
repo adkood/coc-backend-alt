@@ -14,6 +14,9 @@ export class Gstr3b extends BaseEntity {
     @Column({ type: 'varchar' })
     financialYear !: string;
 
+    @Column({ type: "varchar", length: 255 })
+    quarter!: string;
+
     @Column({ type: 'varchar' })
     month !: string;
 
@@ -156,7 +159,7 @@ export class Gstr3b extends BaseEntity {
             cess: string;
         };
     }
-    
+
     @Column({ type: 'json', nullable: true })
     inwardSupplies !: {
         supplierUnderScheme: {

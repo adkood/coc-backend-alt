@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '@/server';
-import validator from 'validator';
+import validator, { isVAT } from 'validator';
 import { Users } from '@/api/entity/user/Users';
+import axios from 'axios';
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
   const queryRunner = AppDataSource.createQueryRunner();
@@ -20,7 +21,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       updatedBy = 'system',
     } = req.body;
 
-    if (!firstName || !lastName || !email || !password || !enrollmentNumber ) {
+    if (!firstName || !lastName || !email || !password || !enrollmentNumber) {
       res.status(400).json({
         status: 'error',
         message: 'All fields are required: first name, last name, email address and password.',
@@ -59,16 +60,26 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const enrollmentNumberRegex = /^(COC|Bmv)\d{11}$/;
-    if (!enrollmentNumberRegex.test(enrollmentNumber)) {
-      res.status(400).json({
-        status: 'error',
-        message: 'Invalid enrollment number format.',
-      });
-      return;
-    }
+    // const enrollmentNumberRegex = /^(COC|Bmv)\d{11}$/;
+    // if (!enrollmentNumberRegex.test(enrollmentNumber)) {
+    //   res.status(400).json({
+    //     status: 'error',
+    //     message: 'Invalid enrollment number format.',
+    //   });
+    //   return;
+    // }
 
     const userLoginRepository = queryRunner.manager.getRepository(Users);
+
+    let practiceType;
+    try {
+      const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`);
+      console.log(isValidPracticeOrderRes);
+      practiceType = isValidPracticeOrderRes.data;
+    } catch (error) {
+      console.log("Error in rollno verification :", error);
+    }
+
 
     const newUser = userLoginRepository.create({
       firstName,
@@ -76,6 +87,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       emailAddress: email,
       password,
       enrollmentNumber,
+      enrollmentType: practiceType?.data?.IsSuccess ? 'practice' : 'basic',
       createdBy,
       updatedBy,
     });
@@ -88,8 +100,9 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       status: 'success',
       message: 'Signup completed successfully. Please verify your email.',
       data: {
-        user: newUser
-      },
+        user: newUser,
+        practiceType
+      }
     });
   } catch (error: any) {
     if (queryRunner.isTransactionActive) {
