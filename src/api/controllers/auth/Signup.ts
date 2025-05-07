@@ -21,7 +21,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       updatedBy = 'system',
     } = req.body;
 
-    if (!firstName || !lastName || !email || !password || !enrollmentNumber) {
+    if (!firstName || !lastName || !email || !password) {
       res.status(400).json({
         status: 'error',
         message: 'All fields are required: first name, last name, email address and password.',
@@ -72,14 +72,18 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     const userLoginRepository = queryRunner.manager.getRepository(Users);
 
     let practiceType;
+    if(enrollmentNumber)
+    {
     try {
       const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`);
-      console.log(isValidPracticeOrderRes);
+      console.log("order id  check :",isValidPracticeOrderRes);
       practiceType = isValidPracticeOrderRes.data;
     } catch (error) {
       console.log("Error in rollno verification :", error);
     }
+  }
 
+    console.log(practiceType);
 
     const newUser = userLoginRepository.create({
       firstName,
@@ -87,11 +91,12 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       emailAddress: email,
       password,
       enrollmentNumber,
-      enrollmentType: practiceType?.data?.IsSuccess ? 'practice' : 'basic',
+      enrollmentType: practiceType?.IsSuccess ? 'practice' : 'basic',
       createdBy,
       updatedBy,
     });
 
+    console.log(newUser);
     await userLoginRepository.save(newUser);
 
     await queryRunner.commitTransaction();
