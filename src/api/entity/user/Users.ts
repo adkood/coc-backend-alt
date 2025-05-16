@@ -78,8 +78,20 @@ export class Users extends BaseEntity {
   @Column({ type: "varchar" })
   enrollmentNumber !: string;
 
-  @Column({ type: "enum", enum: ["basic", "practice"]})
+  @Column({ type: "enum", enum: ["basic", "practice"] })
   enrollmentType !: 'basic' | 'practice';
+
+  @Column({ type: 'varchar', nullable: true })
+  currentSessionToken!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  lastLoginDevice!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  lastLoginIp!: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastLoginAt!: Date | null;
 
   @BeforeInsert()
   async hashPasswordBeforeInsert() {

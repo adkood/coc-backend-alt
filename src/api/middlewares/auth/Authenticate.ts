@@ -8,11 +8,45 @@ interface AuthenticatedRequest extends Request {
   gstIn?: string;
 }
 
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  // Get token from cookies instead of Authorization header
-  const accessToken = req.cookies?.token;
+// export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+//   // Get token from cookies instead of Authorization header
+//   const accessToken = req.cookies?.token;
 
-  console.log(req.cookies);
+//   console.log(req.cookies);
+
+//   if (!accessToken) {
+//     return res.status(401).json({ 
+//       status: 'error', 
+//       message: 'You are not logged in' 
+//     });
+//   }
+
+//   jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '', (err: any, payload: any) => {
+//     if (err) {
+      
+//       res.clearCookie('token');
+//       return res.status(403).json({ 
+//         status: 'error', 
+//         message: 'Session expired, please login again' 
+//       });
+//     }
+
+//     if (!payload || !payload.id) {
+//       res.clearCookie('token');
+//       return res.status(403).json({ 
+//         status: 'error', 
+//         message: 'Invalid session' 
+//       });
+//     }
+
+//     (req as AuthenticatedRequest).userId = payload.id;
+//     next();
+//   });
+// };
+
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  // Get token from cookies
+  const accessToken = req.cookies?.token;
 
   if (!accessToken) {
     return res.status(401).json({ 
@@ -21,17 +55,11 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     });
   }
 
-  jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '', (err: any, payload: any) => {
-    if (err) {
-      
-      res.clearCookie('token');
-      return res.status(403).json({ 
-        status: 'error', 
-        message: 'Session expired, please login again' 
-      });
-    }
-
-    if (!payload || !payload.id) {
+  try {
+    // Verify token
+    const payload = jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '') as any;
+    
+    if (!payload || !payload.id || !payload.sessionToken) {
       res.clearCookie('token');
       return res.status(403).json({ 
         status: 'error', 
@@ -39,9 +67,51 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
       });
     }
 
+    // Get user with current session token
+    const userRepository = AppDataSource.getRepository(Users);
+    const user = await userRepository.findOne({
+      where: { id: payload.id },
+      select: ['id', 'currentSessionToken']
+    });
+
+    if (!user) {
+      res.clearCookie('token');
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'User not found' 
+      });
+    }
+
+    // Verify session token matches
+    if (user.currentSessionToken !== payload.sessionToken) {
+      res.clearCookie('token');
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'Session expired (logged in elsewhere)' 
+      });
+    }
+
+    // Optional: Strict device/IP checking
+    // if (process.env.STRICT_SESSION === 'true') {
+    //   const ipAddress = req.ip;
+    //   if (user.lastLoginIp !== ipAddress) {
+    //     res.clearCookie('token');
+    //     return res.status(403).json({ 
+    //       status: 'error', 
+    //       message: 'Session location changed' 
+    //     });
+    //   }
+    // }
+
     (req as AuthenticatedRequest).userId = payload.id;
     next();
-  });
+  } catch (err) {
+    res.clearCookie('token');
+    return res.status(403).json({ 
+      status: 'error', 
+      message: 'Session expired, please login again' 
+    });
+  }
 };
 
 export const gstAuthenticate = async (req: Request, res: Response, next: NextFunction) => {
