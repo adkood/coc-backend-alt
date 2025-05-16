@@ -512,3 +512,315 @@ export const getSuggestedGSTR3bPeriod = async (req: AuthenticatedRequest, res: R
         });
     }
 };
+
+export const getGstr1PurchaseCalculations = async (req: Request, res: Response) => {
+    try {
+        const { gstIn, financialYear, quarter, month } = req.query;
+        
+        if (!gstIn || !financialYear || !quarter || !month) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'gstIn, financialYear, quarter and month are required parameters'
+            });
+        }
+
+        const gstr1Repository = AppDataSource.getRepository(Gstr1);
+        
+        const whereConditions: any = { 
+            financialYear: financialYear as string,
+            quarter: quarter as string,
+        };
+
+        if (month) {
+            whereConditions.month = month as string;
+        }
+
+        const gstr1Entries = await gstr1Repository.find({ where: whereConditions });
+
+        if (gstr1Entries.length === 0) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'No GSTR-1 records found for the specified criteria'
+            });
+        }
+
+        const calculations = {
+            totalTaxableValue: 0,
+            igst: 0,
+            cgst: 0,
+            sgst: 0,
+            cess: 0,
+            supplies: {
+                b2b: { count: 0, value: 0 },
+                b2c: { count: 0, value: 0 },
+                exports: { count: 0, value: 0 },
+                nilRated: { count: 0, value: 0 },
+                creditNotes: { count: 0, value: 0 }
+            },
+            filteredCount: 0
+        };
+
+        gstr1Entries.forEach(entry => {
+            // Process B2B - only if recipientGSTIN matches
+            if (entry.b2b && entry.b2b?.recipientGSTIN === gstIn) {
+                calculations.supplies.b2b.count++;
+                calculations.supplies.b2b.value += parseFloat(entry.b2b.totalValue) || 0;
+                processTaxValues(entry.b2b.taxableValues, entry.b2b.cessValues, calculations);
+                calculations.filteredCount++;
+            }
+
+            // Process B2C (no recipient GSTIN to check)
+            if (entry.b2c) {
+                calculations.supplies.b2c.count++;
+                calculations.supplies.b2c.value += parseFloat(entry.b2c.totalValue) || 0;
+                processTaxValues(entry.b2c.taxableValues, entry.b2c.cessValues, calculations);
+                calculations.filteredCount++;
+            }
+
+            // Process Exports (no recipient GSTIN to check)
+            if (entry.exports) {
+                calculations.supplies.exports.count++;
+                calculations.supplies.exports.value += parseFloat(entry.exports.totalValue) || 0;
+                processTaxValues(entry.exports.taxableValues, entry.exports.cessValues, calculations);
+                calculations.filteredCount++;
+            }
+
+            // Process Nil Rated
+            if (entry.nilRated) {
+                calculations.supplies.nilRated.count++;
+                calculations.filteredCount++;
+            }
+
+            // Process Credit Notes - only if recipientGSTIN matches
+            if (entry.credit && entry.credit.recipientGSTIN === gstIn) {
+                calculations.supplies.creditNotes.count++;
+                calculations.supplies.creditNotes.value += parseFloat(entry.credit.noteValue) || 0;
+                processTaxValues(entry.credit.taxableValues, entry.credit.cessValues, calculations);
+                calculations.filteredCount++;
+            }
+
+            // Process HSN (no recipient GSTIN to check)
+            if (entry.hsn) {
+                calculations.totalTaxableValue += parseFloat(entry.hsn.taxableValue) || 0;
+                calculations.igst += parseFloat(entry.hsn.integratedTax) || 0;
+                calculations.cgst += parseFloat(entry.hsn.centralTax) || 0;
+                calculations.sgst += parseFloat(entry.hsn.stateTax) || 0;
+                calculations.cess += parseFloat(entry.hsn.cess) || 0;
+                calculations.filteredCount++;
+            }
+
+            if (entry.suppliesThroughEco && entry.suppliesThroughEco?.gstin === gstIn) {
+                // calculations.totalTaxableValue += parseFloat(entry.suppliesThroughEco.netValue) || 0;
+                calculations.igst += parseFloat(entry.suppliesThroughEco.integratedTax) || 0;
+                calculations.cgst += parseFloat(entry.suppliesThroughEco.centralTax) || 0;
+                calculations.sgst += parseFloat(entry.suppliesThroughEco.stateTax) || 0;
+                calculations.cess += parseFloat(entry.suppliesThroughEco.cess) || 0;
+                calculations.filteredCount++;
+            }
+
+            // Process suppliesB2b - only if recipientGstin matches
+            if (entry.suppliesB2b && entry.suppliesB2b.recipientGstin === gstIn) {
+                // Add logic to process suppliesB2b data if needed
+                calculations.filteredCount++;
+            }
+        });
+
+        // Calculate total payable amount
+        const totalPayable = calculations.igst + calculations.cgst + calculations.sgst + calculations.cess;
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                gstIn,
+                financialYear,
+                quarter,
+                month: month || 'All',
+                totalRecords: gstr1Entries.length,
+                filteredRecords: calculations.filteredCount,
+                totalTaxableValue: calculations.totalTaxableValue.toFixed(2),
+                taxes: {
+                    igst: calculations.igst.toFixed(2),
+                    cgst: calculations.cgst.toFixed(2),
+                    sgst: calculations.sgst.toFixed(2),
+                    cess: calculations.cess.toFixed(2),
+                    totalPayable: totalPayable.toFixed(2)
+                },
+                supplies: calculations.supplies
+            }
+        });
+
+    } catch (error) {
+        console.error('Error calculating GSTR-3B values:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Failed to calculate GSTR-3B values',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+};
+
+// Helper function to process tax values
+function processTaxValues(taxableValues: Record<string, string>, cessValues: Record<string, string>, calculations: any) {
+    if (taxableValues) {
+        Object.entries(taxableValues).forEach(([key, value]) => {
+            const numValue = parseFloat(value) || 0;
+            if (key.includes('IGST')) calculations.igst += numValue;
+            if (key.includes('CGST')) calculations.cgst += numValue;
+            if (key.includes('SGST') || key.includes('UTGST')) calculations.sgst += numValue;
+        });
+    }
+
+    if (cessValues) {
+        Object.values(cessValues).forEach((value: any) => {
+            calculations.cess += parseFloat(value) || 0;
+        });
+    }
+}
+
+
+export const getGstr1SalesCalculations = async (req: Request, res: Response) => {
+    try {
+        const { gstIn, financialYear, quarter, month } = req.query;
+        
+        if (!gstIn || !financialYear || !quarter || !month) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'gstIn, financialYear, quarter and month are required parameters'
+            });
+        }
+
+        const gstr1Repository = AppDataSource.getRepository(Gstr1);
+        
+        const whereConditions: any = { 
+            gstIn: gstIn as string,
+            financialYear: financialYear as string,
+            quarter: quarter as string,
+        };
+
+        if (month) {
+            whereConditions.month = month as string;
+        }
+
+        const gstr1Entries = await gstr1Repository.find({ where: whereConditions });
+
+        if (gstr1Entries.length === 0) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'No GSTR-1 records found for the specified criteria'
+            });
+        }
+
+        const calculations = {
+            totalTaxableValue: 0,
+            igst: 0,
+            cgst: 0,
+            sgst: 0,
+            cess: 0,
+            supplies: {
+                b2b: { count: 0, value: 0 },
+                b2c: { count: 0, value: 0 },
+                exports: { count: 0, value: 0 },
+                nilRated: { count: 0, value: 0 },
+                creditNotes: { count: 0, value: 0 }
+            },
+            filteredCount: 0
+        };
+
+        gstr1Entries.forEach(entry => {
+            // Process B2B - only if recipientGSTIN matches
+            if (entry.b2b) {
+                calculations.supplies.b2b.count++;
+                calculations.supplies.b2b.value += parseFloat(entry.b2b.totalValue) || 0;
+                processTaxValues(entry.b2b.taxableValues, entry.b2b.cessValues, calculations);
+                calculations.filteredCount++;
+            }
+
+            // Process B2C (no recipient GSTIN to check)
+            if (entry.b2c) {
+                calculations.supplies.b2c.count++;
+                calculations.supplies.b2c.value += parseFloat(entry.b2c.totalValue) || 0;
+                processTaxValues(entry.b2c.taxableValues, entry.b2c.cessValues, calculations);
+                calculations.filteredCount++;
+            }
+
+            // Process Exports (no recipient GSTIN to check)
+            if (entry.exports) {
+                calculations.supplies.exports.count++;
+                calculations.supplies.exports.value += parseFloat(entry.exports.totalValue) || 0;
+                processTaxValues(entry.exports.taxableValues, entry.exports.cessValues, calculations);
+                calculations.filteredCount++;
+            }
+
+            // Process Nil Rated
+            if (entry.nilRated) {
+                calculations.supplies.nilRated.count++;
+                calculations.filteredCount++;
+            }
+
+            // Process Credit Notes - only if recipientGSTIN matches
+            if (entry.credit) {
+                calculations.supplies.creditNotes.count++;
+                calculations.supplies.creditNotes.value += parseFloat(entry.credit.noteValue) || 0;
+                processTaxValues(entry.credit.taxableValues, entry.credit.cessValues, calculations);
+                calculations.filteredCount++;
+            }
+
+            // Process HSN (no recipient GSTIN to check)
+            if (entry.hsn) {
+                calculations.totalTaxableValue += parseFloat(entry.hsn.taxableValue) || 0;
+                calculations.igst += parseFloat(entry.hsn.integratedTax) || 0;
+                calculations.cgst += parseFloat(entry.hsn.centralTax) || 0;
+                calculations.sgst += parseFloat(entry.hsn.stateTax) || 0;
+                calculations.cess += parseFloat(entry.hsn.cess) || 0;
+                calculations.filteredCount++;
+            }
+
+            if (entry.suppliesThroughEco && entry.suppliesThroughEco?.gstin === gstIn) {
+                // calculations.totalTaxableValue += parseFloat(entry.suppliesThroughEco.netValue) || 0;
+                calculations.igst += parseFloat(entry.suppliesThroughEco.integratedTax) || 0;
+                calculations.cgst += parseFloat(entry.suppliesThroughEco.centralTax) || 0;
+                calculations.sgst += parseFloat(entry.suppliesThroughEco.stateTax) || 0;
+                calculations.cess += parseFloat(entry.suppliesThroughEco.cess) || 0;
+                calculations.filteredCount++;
+            }
+
+            // Process suppliesB2b - only if recipientGstin matches
+            if (entry.suppliesB2b) {
+                // Add logic to process suppliesB2b data if needed
+                calculations.filteredCount++;
+            }
+        });
+
+        // Calculate total payable amount
+        const totalPayable = calculations.igst + calculations.cgst + calculations.sgst + calculations.cess;
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                gstIn,
+                financialYear,
+                quarter,
+                month: month || 'All',
+                totalRecords: gstr1Entries.length,
+                filteredRecords: calculations.filteredCount,
+                totalTaxableValue: calculations.totalTaxableValue.toFixed(2),
+                taxes: {
+                    igst: calculations.igst.toFixed(2),
+                    cgst: calculations.cgst.toFixed(2),
+                    sgst: calculations.sgst.toFixed(2),
+                    cess: calculations.cess.toFixed(2),
+                    totalPayable: totalPayable.toFixed(2)
+                },
+                supplies: calculations.supplies
+            }
+        });
+
+    } catch (error) {
+        console.error('Error calculating GSTR-3B values:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Failed to calculate GSTR-3B values',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+};
