@@ -23,7 +23,7 @@ interface AuthenticatedRequest extends Request {
 
 //   jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '', (err: any, payload: any) => {
 //     if (err) {
-      
+
 //       res.clearCookie('token');
 //       return res.status(403).json({ 
 //         status: 'error', 
@@ -45,29 +45,26 @@ interface AuthenticatedRequest extends Request {
 // };
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-  // Get token from cookies
   const accessToken = req.cookies?.token;
 
   if (!accessToken) {
-    return res.status(401).json({ 
-      status: 'error', 
-      message: 'You are not logged in' 
+    return res.status(401).json({
+      status: 'error',
+      message: 'You are not logged in'
     });
   }
 
   try {
-    // Verify token
     const payload = jwt.verify(accessToken, process.env.ACCESS_SECRET_KEY || '') as any;
-    
+
     if (!payload || !payload.id || !payload.sessionToken) {
       res.clearCookie('token');
-      return res.status(403).json({ 
-        status: 'error', 
-        message: 'Invalid session' 
+      return res.status(403).json({
+        status: 'error',
+        message: 'Invalid session'
       });
     }
 
-    // Get user with current session token
     const userRepository = AppDataSource.getRepository(Users);
     const user = await userRepository.findOne({
       where: { id: payload.id },
@@ -76,40 +73,45 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     if (!user) {
       res.clearCookie('token');
-      return res.status(403).json({ 
-        status: 'error', 
-        message: 'User not found' 
+      return res.status(403).json({
+        status: 'error',
+        message: 'User not found'
       });
     }
 
-    // Verify session token matches
     if (user.currentSessionToken !== payload.sessionToken) {
       res.clearCookie('token');
-      return res.status(403).json({ 
-        status: 'error', 
-        message: 'Session expired (logged in elsewhere)' 
+      return res.status(403).json({
+        status: 'error',
+        message: 'Session expired (logged in elsewhere)'
       });
     }
-
-    // Optional: Strict device/IP checking
-    // if (process.env.STRICT_SESSION === 'true') {
-    //   const ipAddress = req.ip;
-    //   if (user.lastLoginIp !== ipAddress) {
-    //     res.clearCookie('token');
-    //     return res.status(403).json({ 
-    //       status: 'error', 
-    //       message: 'Session location changed' 
-    //     });
-    //   }
-    // }
 
     (req as AuthenticatedRequest).userId = payload.id;
     next();
   } catch (err) {
+    // Clear the token cookie
     res.clearCookie('token');
-    return res.status(403).json({ 
-      status: 'error', 
-      message: 'Session expired, please login again' 
+
+    // If the error is because of token expiration
+    if (err instanceof jwt.TokenExpiredError) {
+      try {
+        // Get the expired payload without verification
+        const expiredPayload = jwt.decode(accessToken) as any;
+
+        if (expiredPayload?.id) {
+          // Reset the currentSessionToken for this user
+          const userRepository = AppDataSource.getRepository(Users);
+          await userRepository.update(expiredPayload.id, { currentSessionToken: null });
+        }
+      } catch (dbError) {
+        console.error('Failed to clear session token:', dbError);
+      }
+    }
+
+    return res.status(403).json({
+      status: 'error',
+      message: 'Session expired, please login again'
     });
   }
 };
@@ -118,9 +120,9 @@ export const gstAuthenticate = async (req: Request, res: Response, next: NextFun
   const authReq = req as AuthenticatedRequest;
 
   if (!authReq.userId) {
-    return res.status(401).json({ 
-      status: 'error', 
-      message: 'User not authenticated' 
+    return res.status(401).json({
+      status: 'error',
+      message: 'User not authenticated'
     });
   }
 
@@ -134,7 +136,7 @@ export const gstAuthenticate = async (req: Request, res: Response, next: NextFun
   }
 
   try {
-    
+
     // Verify GSTIN belongs to user
     const userRepo = AppDataSource.getRepository(Users);
     const user = await userRepo.findOne({
