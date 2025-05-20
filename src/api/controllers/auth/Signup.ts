@@ -16,6 +16,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       lastName,
       email,
       password,
+      userType,
       enrollmentNumber,
       createdBy = 'system',
       updatedBy = 'system',
@@ -60,30 +61,38 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // const enrollmentNumberRegex = /^(COC|Bmv)\d{11}$/;
-    // if (!enrollmentNumberRegex.test(enrollmentNumber)) {
-    //   res.status(400).json({
-    //     status: 'error',
-    //     message: 'Invalid enrollment number format.',
-    //   });
-    //   return;
-    // }
 
     const userLoginRepository = queryRunner.manager.getRepository(Users);
 
-    let practiceType;
-    if(enrollmentNumber)
-    {
-    try {
-      const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`);
-      console.log("order id  check :",isValidPracticeOrderRes);
-      practiceType = isValidPracticeOrderRes.data;
-    } catch (error) {
-      console.log("Error in rollno verification :", error);
+    const isEnrollmentUsed = await userLoginRepository.find({ where: { enrollmentNumber } });
+
+    if (isEnrollmentUsed) {
+      res.status(400).json({ status: "success", message: "Enrollment Number already used!" });
+      return;
     }
-  }
+
+    let practiceType;
+    if (enrollmentNumber) {
+      try {
+        const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`);
+        console.log("order id  check :", isValidPracticeOrderRes);
+        practiceType = isValidPracticeOrderRes.data;
+      } catch (error) {
+        console.log("Error in rollno verification :", error);
+      }
+    }
 
     console.log(practiceType);
+
+    if (userType === "new" && practiceType?.IsSuccess) {
+      res.status(400).json({ status: "success", message: "Select CFM registered User!" });
+      return;
+    }
+
+    if (userType !== "new" && !practiceType?.IsSuccess) {
+      res.status(400).json({ status: "success", message: "Invalid CFM enrollment number!" });
+      return;
+    }
 
     const newUser = userLoginRepository.create({
       firstName,
@@ -114,14 +123,6 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       await queryRunner.rollbackTransaction();
     }
     console.error('Error during signup:', error);
-
-    if (error.code === 'ER_DUP_ENTRY') {
-      res.status(400).json({
-        status: 'error',
-        message: 'This email is already in use.',
-      });
-      return;
-    }
 
     res.status(500).json({
       status: 'error',
