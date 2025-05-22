@@ -5,7 +5,7 @@ import { AppDataSource } from '@/server';
 import { Users } from '@/api/entity/user/Users';
 import { randomBytes } from 'crypto';
 
-const generateAccessToken = (user: { id: string,  sessionToken: string}, rememberMe: boolean = false): string => {
+const generateAccessToken = (user: { id: string, sessionToken: string }, rememberMe: boolean = false): string => {
   return jwt.sign({ id: user.id, sessionToken: user.sessionToken }, process.env.ACCESS_SECRET_KEY!, {
     expiresIn: rememberMe ? process.env.JWT_ACCESS_EXPIRES_IN_REMEMBER : process.env.JWT_ACCESS_EXPIRES_IN,
   });
@@ -146,9 +146,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
 
       const { userId } = payload;
-      user = await userLoginRepository.findOne({ 
-        where: { id: userId }, 
-        select: ['id','gstIns' ,'emailAddress', 'mobileNumber', 'firstName', 'lastName', 'enrollmentNumber', 'enrollmentType', 'currentSessionToken'] 
+      user = await userLoginRepository.findOne({
+        where: { id: userId },
+        select: ['id', 'gstIns', 'emailAddress', 'mobileNumber', 'firstName', 'lastName', 'enrollmentNumber', 'enrollmentType', 'currentSessionToken']
       });
 
       if (!user) {
@@ -165,7 +165,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
     } else {
       // Find the user by email for regular login
-      user = await userLoginRepository.findOne({ 
+      user = await userLoginRepository.findOne({
         where: { emailAddress: email },
         select: ['id', 'password', 'gstIns', 'emailAddress', 'mobileNumber', 'firstName', 'lastName', 'enrollmentNumber', 'enrollmentType', 'currentSessionToken']
       });
@@ -179,7 +179,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       }
 
       // Check if user already has an active session
-      if (user.currentSessionToken) {
+      if (user.currentSessionToken && user.lastLoginIp !== ipAddress) {
         res.status(403).json({
           status: 'error',
           message: 'You are already logged in on another device. Please logout there first or wait for the session to expire.',
@@ -190,7 +190,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Generate a unique session token
     const sessionToken = randomBytes(32).toString('hex');
-    
+
     // Update user with session info
     user.currentSessionToken = sessionToken;
     user.lastLoginDevice = deviceInfo || null;
