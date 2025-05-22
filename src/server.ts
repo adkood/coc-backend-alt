@@ -20,6 +20,8 @@ import { Users } from './api/entity/user/Users';
 import { GstRegistrations } from './api/entity/gst/GstRegistrations';
 import { Gstr1 } from './api/entity/gst/Gstr1';
 import { Gstr3b } from './api/entity/gst/Gstr3b';
+import { Enquiry } from './api/entity/extra/Enquiry';
+import { Letter } from './api/entity/extra/Letter';
 
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -36,7 +38,9 @@ const AppDataSource = new DataSource({
     Users,
     GstRegistrations,
     Gstr1,
-    Gstr3b
+    Gstr3b,
+    Enquiry,
+    Letter
   ],
   synchronize: false,
 });

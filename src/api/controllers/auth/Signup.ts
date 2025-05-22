@@ -64,11 +64,13 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 
     const userLoginRepository = queryRunner.manager.getRepository(Users);
 
-    const isEnrollmentUsed = await userLoginRepository.find({ where: { enrollmentNumber } });
+    if (enrollmentNumber) {
+      const isEnrollmentUsed = await userLoginRepository.findOne({ where: { enrollmentNumber } });
 
-    if (isEnrollmentUsed) {
-      res.status(400).json({ status: "success", message: "Enrollment Number already used!" });
-      return;
+      if (isEnrollmentUsed) {
+        res.status(400).json({ status: "success", message: "Enrollment Number already used!" });
+        return;
+      }
     }
 
     let practiceType;
