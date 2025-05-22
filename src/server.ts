@@ -69,6 +69,7 @@ app.use(helmet());
 // app.use(rateLimiter);
 app.use(requestLogger);
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Routes mounting
