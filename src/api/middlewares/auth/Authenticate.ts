@@ -45,7 +45,7 @@ interface AuthenticatedRequest extends Request {
 // };
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-  const accessToken = req.cookies?.token;
+  const accessToken = req.cookies?.token || req.headers.authorization?.split(' ')[1];
 
   if (!accessToken) {
     return res.status(401).json({
@@ -79,6 +79,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       });
     }
 
+    // Check if session token matches
     if (user.currentSessionToken !== payload.sessionToken) {
       res.clearCookie('token');
       return res.status(403).json({
@@ -90,7 +91,6 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     (req as AuthenticatedRequest).userId = payload.id;
     next();
   } catch (err) {
-    // Clear the token cookie
     res.clearCookie('token');
 
     // If the error is because of token expiration
@@ -115,6 +115,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     });
   }
 };
+
 
 export const gstAuthenticate = async (req: Request, res: Response, next: NextFunction) => {
   const authReq = req as AuthenticatedRequest;
