@@ -87,6 +87,7 @@ app.get('/', (req, res) => {
 app.get('/proxy/verify-order', async (req, res) => {
   try {
     const { orderNo } = req.query;
+    console.log("orderNo :", orderNo);
     const response = await axios.get(
       `http://www.crm.coceducation.com/correct-api-path/VerifyOrderNo?orderNo=${orderNo}`,  // Updated path
       {
@@ -96,6 +97,7 @@ app.get('/proxy/verify-order', async (req, res) => {
       }
     );
 
+    console.log(response.data);
     if (response.headers['content-type']?.includes('text/html')) {
       throw new Error("API returned HTML instead of JSON");
     }
