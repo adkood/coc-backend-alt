@@ -88,13 +88,12 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       try {
         // Call your backend proxy instead of the external API directly
         const isValidPracticeOrderRes = await axios.get(
-          `https://your-backend-domain.com/proxy/verify-order?orderNo=${enrollmentNumber}`
+          `https://cfmpractice.coceducation.com/proxy/verify-order?orderNo=${enrollmentNumber}`
         );
         console.log("Order ID check:", isValidPracticeOrderRes.data);
         practiceType = isValidPracticeOrderRes.data;
       } catch (error) {
         console.log("Error in enrollment verification:", error);
-        // Handle error (e.g., show a message to the user)
       }
     }
 
