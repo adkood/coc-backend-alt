@@ -338,9 +338,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const cookieOptions: any = {
       httpOnly: true,
-      secure: false,
+      secure: true,
       sameSite: 'none',
       path: '/',
+      // domain: "cfmpractice.coceducation.com"
     };
 
     res.cookie('token', accessToken, cookieOptions);
