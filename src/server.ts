@@ -89,7 +89,7 @@ app.get('/proxy/verify-order', async (req, res) => {
     const { orderNo } = req.query;
     console.log("orderNo :", orderNo);
     const response = await axios.get(
-      `http://www.crm.coceducation.com/correct-api-path/VerifyOrderNo?orderNo=${orderNo}`,  // Updated path
+      `http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${orderNo}`,  
       {
         headers: {
           'Accept': 'application/json',  // Explicitly request JSON
