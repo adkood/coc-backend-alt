@@ -74,13 +74,27 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     }
 
     let practiceType;
+    // if (enrollmentNumber) {
+    //   try {
+    //     const isValidPracticeOrderRes = await axios.get(`https://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`);
+    //     console.log("order id  check :", isValidPracticeOrderRes);
+    //     practiceType = isValidPracticeOrderRes.data;
+    //   } catch (error) {
+    //     console.log("Error in rollno verification :", error);
+    //   }
+    // }
+
     if (enrollmentNumber) {
       try {
-        const isValidPracticeOrderRes = await axios.get(`https://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`);
-        console.log("order id  check :", isValidPracticeOrderRes);
+        // Call your backend proxy instead of the external API directly
+        const isValidPracticeOrderRes = await axios.get(
+          `https://your-backend-domain.com/proxy/verify-order?orderNo=${enrollmentNumber}`
+        );
+        console.log("Order ID check:", isValidPracticeOrderRes.data);
         practiceType = isValidPracticeOrderRes.data;
       } catch (error) {
-        console.log("Error in rollno verification :", error);
+        console.log("Error in enrollment verification:", error);
+        // Handle error (e.g., show a message to the user)
       }
     }
 

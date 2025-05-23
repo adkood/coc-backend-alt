@@ -22,6 +22,7 @@ import { Gstr1 } from './api/entity/gst/Gstr1';
 import { Gstr3b } from './api/entity/gst/Gstr3b';
 import { Enquiry } from './api/entity/extra/Enquiry';
 import { Letter } from './api/entity/extra/Letter';
+import axios from 'axios';
 
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -80,6 +81,24 @@ app.use('/practice/v1/gst', gstRouter);
 // Test route
 app.get('/', (req, res) => {
   res.send('Welcome to coc');
+});
+
+// Add this to your existing routes in server.ts
+app.get('/proxy/verify-order', async (req, res) => {
+  try {
+    const { orderNo } = req.query;
+    if (!orderNo) {
+      return res.status(400).json({ error: "Order number is required" });
+    }
+
+    const response = await axios.get(
+      `http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${orderNo}`
+    );
+    res.json(response.data); // Forward the API response
+  } catch (error) {
+    console.error("Proxy error:", error);
+    res.status(500).json({ error: "Failed to verify order number" });
+  }
 });
 
 // Error handlers
