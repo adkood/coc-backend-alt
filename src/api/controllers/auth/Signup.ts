@@ -76,7 +76,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     let practiceType;
     if (enrollmentNumber) {
       try {
-        const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`);
+        const isValidPracticeOrderRes = await axios.get(`https://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`);
         console.log("order id  check :", isValidPracticeOrderRes);
         practiceType = isValidPracticeOrderRes.data;
       } catch (error) {
