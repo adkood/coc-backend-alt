@@ -6,31 +6,31 @@ import { QueryRunner } from 'typeorm';
 import { Letter } from '@/api/entity/extra/Letter';
 
 export const createEnquiry = async (req: Request, res: Response) => {
-    try {
+  try {
+    const { fullName, mobileNumber, emailAddress, query } = req.body;
 
-        const { fullName, mobileNumber, emailAddress, query } = req.body;
-
-        if (!fullName || !mobileNumber || !emailAddress || !query) {
-            res.status(400).json({ status: "success", message: "Fullname, email, mobileNUmber and query is required!" });
-            return;
-        }
-
-        const enquiryRepo = AppDataSource.getRepository(Enquiry);
-
-        const enquiry = enquiryRepo.create({
-            fullName,
-            mobileNumber,
-            emailAddress,
-            query
-        });
-
-        await enquiry.save();
-
-        res.status(201).json({ status: "success", message: "New enquiry created" });
-
-    } catch (error) {
-        res.status(500).json({ status: "error", message: "Something went wrong!" });
+    if (!fullName?.trim() || !mobileNumber?.trim() || !emailAddress?.trim() || !query?.trim()) {
+      res.status(400).json({ status: "error", message: "Fullname, email, mobileNumber, and query are required!" });
+      return;
     }
+
+    const enquiryRepo = AppDataSource.getRepository(Enquiry);
+
+    const enquiry = enquiryRepo.create({
+      fullName,
+      mobileNumber,
+      emailAddress,
+      query
+    });
+
+    await enquiryRepo.save(enquiry);
+
+    res.status(201).json({ status: "success", message: "New enquiry created" });
+
+  } catch (error) {
+    console.error("Error in createEnquiry:", error);
+    res.status(500).json({ status: "error", message: "Something went wrong!" });
+  }
 }
 
 
@@ -62,14 +62,14 @@ export const createLetter = async (req: Request, res: Response): Promise<void> =
     }
 
     // Check for existing email
-    const existingLetter = await queryRunner.manager.findOne(Letter, { 
-      where: { emailAddress } 
+    const existingLetter = await queryRunner.manager.findOne(Letter, {
+      where: { emailAddress }
     });
 
     if (existingLetter) {
       res.status(400).json({
         status: 'error',
-        message: 'Email address already exists in our system',
+        message: 'You have already subscribed.',
       });
       return;
     }
