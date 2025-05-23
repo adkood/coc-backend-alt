@@ -87,20 +87,25 @@ app.get('/', (req, res) => {
 app.get('/proxy/verify-order', async (req, res) => {
   try {
     const { orderNo } = req.query;
-    if (!orderNo) {
-      return res.status(400).json({ error: "Order number is required" });
+    const response = await axios.get(
+      `http://www.crm.coceducation.com/correct-api-path/VerifyOrderNo?orderNo=${orderNo}`,  // Updated path
+      {
+        headers: {
+          'Accept': 'application/json',  // Explicitly request JSON
+        },
+      }
+    );
+
+    if (response.headers['content-type']?.includes('text/html')) {
+      throw new Error("API returned HTML instead of JSON");
     }
 
-    const response = await axios.get(
-      `http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${orderNo}`
-    );
-    res.json(response.data); // Forward the API response
+    res.json(response.data);
   } catch (error) {
     console.error("Proxy error:", error);
     res.status(500).json({ error: "Failed to verify order number" });
   }
 });
-
 // Error handlers
 app.use(errorHandler());
 
