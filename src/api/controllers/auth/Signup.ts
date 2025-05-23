@@ -84,19 +84,23 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     //   }
     // }
 
-    if (enrollmentNumber) {
-      try {
-        // Call your backend proxy instead of the external API directly
-        const isValidPracticeOrderRes = await axios.get(
-          `https://cfmpractice.coceducation.com/proxy/verify-order?orderNo=${enrollmentNumber}`
-        );
-        console.log("testing :", isValidPracticeOrderRes);
-        console.log("Order ID check:", isValidPracticeOrderRes.data);
-        practiceType = isValidPracticeOrderRes.data;
-      } catch (error) {
-        console.log("Error in enrollment verification:", error);
-      }
+   if (enrollmentNumber) {
+  try {
+    const isValidPracticeOrderRes = await axios.get(
+      `https://cfmpractice.coceducation.com/proxy/verify-order?orderNo=${enrollmentNumber}`
+    );
+    // Check if the response data is valid
+    if (isValidPracticeOrderRes.data && typeof isValidPracticeOrderRes.data === 'object') {
+      practiceType = isValidPracticeOrderRes.data;
+    } else {
+      console.error("Invalid response format from server");
+      // Handle invalid format (e.g., show error to user)
     }
+  } catch (error) {
+    console.error("Error in enrollment verification:", error);
+    // Handle network errors or server errors
+  }
+}
 
     console.log(practiceType);
 
