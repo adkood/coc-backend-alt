@@ -329,10 +329,17 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }, rememberMe);
 
     // Set cookie
+    // const cookieOptions: any = {
+    //   httpOnly: true,
+    //   secure: true,
+    //   sameSite: 'lax',
+    //   path: '/',
+    // };
+
     const cookieOptions: any = {
       httpOnly: true,
       secure: false,
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
     };
 
