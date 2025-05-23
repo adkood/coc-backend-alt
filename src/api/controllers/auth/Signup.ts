@@ -90,6 +90,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         const isValidPracticeOrderRes = await axios.get(
           `https://cfmpractice.coceducation.com/proxy/verify-order?orderNo=${enrollmentNumber}`
         );
+        console.log("testing :", isValidPracticeOrderRes);
         console.log("Order ID check:", isValidPracticeOrderRes.data);
         practiceType = isValidPracticeOrderRes.data;
       } catch (error) {

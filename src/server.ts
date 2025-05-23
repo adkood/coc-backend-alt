@@ -97,7 +97,7 @@ app.get('/proxy/verify-order', async (req, res) => {
       }
     );
 
-    console.log(response.data);
+    console.log("First place :", response);
     if (response.headers['content-type']?.includes('text/html')) {
       throw new Error("API returned HTML instead of JSON");
     }
