@@ -409,12 +409,21 @@ export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    // const cookieOptions: any = {
+    //   httpOnly: true,
+    //   secure: false,
+    //   sameSite: 'lax',
+    //   path: '/',
+    // };
+
     const cookieOptions: any = {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       path: '/',
+      // domain: "cfmpractice.coceducation.com"
     };
+
 
     res.cookie('gstIn', gstIn, cookieOptions);
 
