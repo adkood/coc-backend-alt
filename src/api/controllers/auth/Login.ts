@@ -329,20 +329,21 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }, rememberMe);
 
     // Set cookie
-    // const cookieOptions: any = {
-    //   httpOnly: true,
-    //   secure: true,
-    //   sameSite: 'lax',
-    //   path: '/',
-    // };
-
     const cookieOptions: any = {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
+      sameSite: 'lax',
       path: '/',
-      // domain: "cfmpractice.coceducation.com"
     };
+
+    // for dev
+    // const cookieOptions: any = {
+    //   httpOnly: true,
+    //   secure: true,
+    //   sameSite: 'none',
+    //   path: '/',
+    //   // domain: "cfmpractice.coceducation.com"
+    // };
 
     res.cookie('token', accessToken, cookieOptions);
 
@@ -409,20 +410,21 @@ export const gstLogin = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // const cookieOptions: any = {
-    //   httpOnly: true,
-    //   secure: false,
-    //   sameSite: 'lax',
-    //   path: '/',
-    // };
-
     const cookieOptions: any = {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: false,
+      sameSite: 'lax',
       path: '/',
-      // domain: "cfmpractice.coceducation.com"
     };
+
+    // for dev
+    // const cookieOptions: any = {
+    //   httpOnly: true,
+    //   secure: true,
+    //   sameSite: 'none',
+    //   path: '/',
+    //   // domain: "cfmpractice.coceducation.com"
+    // };
 
 
     res.cookie('gstIn', gstIn, cookieOptions);
