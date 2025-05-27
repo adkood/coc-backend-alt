@@ -75,7 +75,7 @@ export class Users extends BaseEntity {
   })
   updatedAt!: Date;
 
-  @Column({ type: "varchar", unique: true })
+  @Column({ type: "varchar", unique: true, nullable: true })
   enrollmentNumber !: string;
 
   @Column({ type: "enum", enum: ["basic", "practice"] })

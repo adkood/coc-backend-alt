@@ -16,7 +16,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       lastName,
       email,
       password,
-      userType = 'new', // Default to 'new' if not provided
+      userType = 'new',
       enrollmentNumber,
       createdBy = 'system',
       updatedBy = 'system',
