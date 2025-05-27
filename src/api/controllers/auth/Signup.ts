@@ -74,37 +74,41 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     }
 
     let practiceType;
+    // if (enrollmentNumber) {
+    //   try {
+    //     const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
+    //       {
+    //         headers: { 'Accept': 'application/json' },
+    //       }
+    //     );
+    //     console.log("order id  check :", isValidPracticeOrderRes);
+    //     practiceType = isValidPracticeOrderRes.data;
+    //   } catch (error) {
+    //     console.log("Error in rollno verification :", error);
+    //   }
+    // }
+
     if (enrollmentNumber) {
       try {
-        const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
-          {
-            headers: { 'Accept': 'application/json' },
-          }
-        );
-        console.log("order id  check :", isValidPracticeOrderRes);
+        const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`, {
+          headers: { 'Accept': 'application/json' },
+          timeout: 5000 // Add timeout
+        });
+
+        if (!isValidPracticeOrderRes.data) {
+          throw new Error('Invalid response from enrollment verification service');
+        }
+
         practiceType = isValidPracticeOrderRes.data;
       } catch (error) {
-        console.log("Error in rollno verification :", error);
+        console.error("Error in enrollment verification:", error);
+        res.status(502).json({
+          status: "error",
+          message: "Enrollment verification service unavailable"
+        });
+        return;
       }
     }
-
-    //  if (enrollmentNumber) {
-    // try {
-    //   const isValidPracticeOrderRes = await axios.get(
-    //     `https://cfmpractice.coceducation.com/proxy/verify-order?orderNo=${enrollmentNumber}`
-    //   );
-    //   // Check if the response data is valid
-    //   if (isValidPracticeOrderRes.data && typeof isValidPracticeOrderRes.data === 'object') {
-    //     practiceType = isValidPracticeOrderRes.data;
-    //   } else {
-    //     console.error("Invalid response format from server");
-    //     // Handle invalid format (e.g., show error to user)
-    //   }
-    // } catch (error) {
-    //   console.error("Error in enrollment verification:", error);
-    //   // Handle network errors or server errors
-    // }
-    // }
 
     console.log(practiceType);
 
