@@ -34,7 +34,7 @@ export const sendResetEmail = async (req: Request, res: Response) => {
         <a href="${newResetLink}">Reset Password</a>
         <p>If you did not request this, please ignore this email.</p>
         <p>Thank you,</p>
-        <p>The BusinessRoom Team</p>
+        <p>The Coceducation Team</p>
       `,
       text: `You requested a password reset. Please visit this link to reset your password: ${newResetLink}`,
     };
