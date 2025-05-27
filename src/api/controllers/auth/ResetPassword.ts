@@ -8,53 +8,123 @@ import { AppDataSource } from "@/server";
 // Initialize SendGrid with your API key
 sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
+// export const sendResetEmail = async (req: Request, res: Response) => {
+//   try {
+//     const { toEmail, resetLink } = req.body;
+
+//     const personalDetailsRepo = AppDataSource.getRepository(Users);
+//     const user = await personalDetailsRepo.findOne({ where: { emailAddress: toEmail } });
+
+//     if (!user?.emailAddress) {
+//       return res.status(400).json({ status: "error", message: "User with this email doesn't exist" });
+//     }
+
+//     // Generate reset token
+//     const resetToken = jwt.sign({ userId: user.id }, process.env.ACCESS_SECRET_KEY!, { expiresIn: "1h" });
+//     const newResetLink = `${resetLink}?token=${resetToken}`;
+
+//     // Create SendGrid message
+//     const msg = {
+//       to: toEmail,
+//       from: process.env.SENDGRID_FROM_EMAIL!, 
+//       subject: "Reset Your Password",
+//       html: `
+//         <p>Hi,</p>
+//         <p>You requested a password reset. Please click the link below to reset your password:</p>
+//         <a href="${newResetLink}">Reset Password</a>
+//         <p>If you did not request this, please ignore this email.</p>
+//         <p>Thank you,</p>
+//         <p>The Coceducation Team</p>
+//       `,
+//       text: `You requested a password reset. Please visit this link to reset your password: ${newResetLink}`,
+//     };
+
+//     // Send the email
+//     await sgMail.send(msg);
+//     console.log("Email sent successfully");
+//     res.status(200).json({ success: true, message: "Email sent successfully." });
+//   } catch (error) {
+//     console.error("Error sending email:", error);
+
+//     // More detailed error logging
+//     if (error instanceof Error) {
+//       console.error(error.message);
+//       if ('response' in error) {
+//         console.error((error as any).response?.body);
+//       }
+//     }
+
+//     res.status(500).json({ success: false, message: "Failed to send email." });
+//   }
+// };
+
 export const sendResetEmail = async (req: Request, res: Response) => {
   try {
     const { toEmail, resetLink } = req.body;
 
-    const personalDetailsRepo = AppDataSource.getRepository(Users);
-    const user = await personalDetailsRepo.findOne({ where: { emailAddress: toEmail } });
-
-    if (!user?.emailAddress) {
-      return res.status(400).json({ status: "error", message: "User with this email doesn't exist" });
+    // Validate input
+    if (!toEmail || !resetLink) {
+      return res.status(400).json({
+        status: "error",
+        message: "Both email and reset link are required"
+      });
     }
 
-    // Generate reset token
-    const resetToken = jwt.sign({ userId: user.id }, process.env.ACCESS_SECRET_KEY!, { expiresIn: "1h" });
+    const personalDetailsRepo = AppDataSource.getRepository(Users);
+    const user = await personalDetailsRepo.findOne({
+      where: { emailAddress: toEmail }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "User with this email doesn't exist"
+      });
+    }
+
+    // Generate token
+    const resetToken = jwt.sign(
+      { userId: user.id },
+      process.env.ACCESS_SECRET_KEY!,
+      { expiresIn: "1h" }
+    );
+
     const newResetLink = `${resetLink}?token=${resetToken}`;
 
-    // Create SendGrid message
-    const msg = {
+    // Send email
+    await sgMail.send({
       to: toEmail,
-      from: process.env.SENDGRID_FROM_EMAIL!, 
+      from: process.env.SENDGRID_FROM_EMAIL!,
       subject: "Reset Your Password",
       html: `
-        <p>Hi,</p>
-        <p>You requested a password reset. Please click the link below to reset your password:</p>
-        <a href="${newResetLink}">Reset Password</a>
-        <p>If you did not request this, please ignore this email.</p>
-        <p>Thank you,</p>
-        <p>The Coceducation Team</p>
-      `,
+         <p>Hi,</p>
+         <p>You requested a password reset. Please click the link below to reset your password:</p>
+         <a href="${newResetLink}">Reset Password</a>
+         <p>If you did not request this, please ignore this email.</p>
+         <p>Thank you,</p>
+         <p>The Coceducation Team</p>
+       `,
       text: `You requested a password reset. Please visit this link to reset your password: ${newResetLink}`,
-    };
 
-    // Send the email
-    await sgMail.send(msg);
-    console.log("Email sent successfully");
-    res.status(200).json({ success: true, message: "Email sent successfully." });
-  } catch (error) {
-    console.error("Error sending email:", error);
-    
-    // More detailed error logging
-    if (error instanceof Error) {
-      console.error(error.message);
-      if ('response' in error) {
-        console.error((error as any).response?.body);
-      }
-    }
-    
-    res.status(500).json({ success: false, message: "Failed to send email." });
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Reset email sent successfully"
+    });
+
+  } catch (error: any) {
+    console.error("Password reset error:", {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.body
+    });
+
+    res.status(500).json({
+      success: false,
+      message: error.response?.body?.errors?.[0]?.message ||
+        "Failed to send reset email"
+    });
   }
 };
 

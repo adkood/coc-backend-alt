@@ -16,13 +16,15 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       lastName,
       email,
       password,
-      userType,
+      userType = 'new', // Default to 'new' if not provided
       enrollmentNumber,
       createdBy = 'system',
       updatedBy = 'system',
     } = req.body;
 
+    // Input validation
     if (!firstName || !lastName || !email || !password) {
+      await queryRunner.rollbackTransaction();
       res.status(400).json({
         status: 'error',
         message: 'All fields are required: first name, last name, email address and password.',
@@ -31,6 +33,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     }
 
     if (!validator.isEmail(email)) {
+      await queryRunner.rollbackTransaction();
       res.status(400).json({
         status: 'error',
         message: 'Invalid email address format.',
@@ -45,107 +48,107 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       !/[a-z]/.test(password) ||
       !/[0-9]/.test(password)
     ) {
+      await queryRunner.rollbackTransaction();
       res.status(400).json({
         status: 'error',
-        message:
-          'Password must be at least 8 characters long and include uppercase letters, lowercase letters and digits.',
+        message: 'Password must be at least 8 characters long and include uppercase, lowercase letters and digits.',
       });
       return;
     }
 
     if (firstName.length > 50 || lastName.length > 50) {
+      await queryRunner.rollbackTransaction();
       res.status(400).json({
         status: 'error',
         message: 'First name and last name must not exceed 50 characters.',
       });
       return;
-    }
 
+    }
 
     const userLoginRepository = queryRunner.manager.getRepository(Users);
 
+    // Check for existing email
+    const isEmailPresent = await userLoginRepository.findOne({ where: { emailAddress: email } });
+    if (isEmailPresent) {
+      await queryRunner.rollbackTransaction();
+      res.status(400).json({ status: "error", message: "Email address already used!" });
+      return;
+
+    }
+
+    // Check for existing enrollment number if provided
     if (enrollmentNumber) {
       const isEnrollmentUsed = await userLoginRepository.findOne({ where: { enrollmentNumber } });
-
       if (isEnrollmentUsed) {
-        res.status(400).json({ status: "success", message: "Enrollment Number already used!" });
+        await queryRunner.rollbackTransaction();
+        res.status(400).json({ status: "error", message: "Enrollment Number already used!" });
         return;
       }
     }
 
-    let practiceType;
-    // if (enrollmentNumber) {
-    //   try {
-    //     const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
-    //       {
-    //         headers: { 'Accept': 'application/json' },
-    //       }
-    //     );
-    //     console.log("order id  check :", isValidPracticeOrderRes);
-    //     practiceType = isValidPracticeOrderRes.data;
-    //   } catch (error) {
-    //     console.log("Error in rollno verification :", error);
-    //   }
-    // }
+    let enrollmentType;
+    if (userType === 'new') {
+      enrollmentType = 'basic';
+    } else {
+      if (!enrollmentNumber) {
+        await queryRunner.rollbackTransaction();
+        res.status(400).json({ status: "error", message: "Enrollment number is required for non-new users" });
+        return;
+      }
 
-    if (enrollmentNumber) {
       try {
-        const isValidPracticeOrderRes = await axios.get(`http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`, {
-          headers: { 'Accept': 'application/json' },
-          timeout: 5000 // Add timeout
-        });
+        const isValidPracticeOrderRes = await axios.get(
+          `http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
+          { headers: { 'Accept': 'application/json' } }
+        );
 
-        if (!isValidPracticeOrderRes.data) {
-          throw new Error('Invalid response from enrollment verification service');
+        if (!isValidPracticeOrderRes.data?.IsSuccess) {
+          await queryRunner.rollbackTransaction();
+          res.status(400).json({ status: "error", message: "Invalid CFM enrollment number!" });
+          return;
+
         }
 
-        practiceType = isValidPracticeOrderRes.data;
+        enrollmentType = 'practice';
       } catch (error) {
         console.error("Error in enrollment verification:", error);
-        res.status(502).json({
-          status: "error",
-          message: "Enrollment verification service unavailable"
-        });
+        await queryRunner.rollbackTransaction();
+        res.status(400).json({ status: "error", message: "Error in enrollment verification!" });
         return;
+
       }
-    }
-
-    console.log(practiceType);
-
-    if (userType === "new" && practiceType?.IsSuccess) {
-      res.status(400).json({ status: "success", message: "Select CFM registered User!" });
-      return;
-    }
-
-    if (userType !== "new" && !practiceType?.IsSuccess) {
-      res.status(400).json({ status: "success", message: "Invalid CFM enrollment number!" });
-      return;
     }
 
     const newUser = userLoginRepository.create({
       firstName,
       lastName,
       emailAddress: email,
-      password,
-      enrollmentNumber,
-      enrollmentType: practiceType?.IsSuccess ? 'practice' : 'basic',
+      password: password,
+      enrollmentNumber: enrollmentNumber || null, 
+      enrollmentType: enrollmentType as 'basic' | 'practice', 
       createdBy,
       updatedBy,
     });
 
-    console.log(newUser);
     await userLoginRepository.save(newUser);
-
     await queryRunner.commitTransaction();
+
 
     res.status(201).json({
       status: 'success',
-      message: 'Signup completed successfully. Please verify your email.',
+      message: 'Signup completed successfully.',
       data: {
-        user: newUser,
-        practiceType
+        user: {
+          id: newUser.id,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          email: newUser.emailAddress,
+          enrollmentType: newUser.enrollmentType
+        }
       }
     });
+
   } catch (error: any) {
     if (queryRunner.isTransactionActive) {
       await queryRunner.rollbackTransaction();
@@ -154,7 +157,8 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 
     res.status(500).json({
       status: 'error',
-      message: 'Something went wrong! Please try again later.',
+      message: 'Internal server error during signup',
+      ...(process.env.NODE_ENV === 'development' && { error: error.message })
     });
   } finally {
     await queryRunner.release();
