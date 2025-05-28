@@ -35,7 +35,7 @@ export const sendResetEmail = async (req: Request, res: Response) => {
     // Generate token
     const resetToken = jwt.sign(
       { userId: user.id },
-      process.env.ACCESS_SECRET_KEY!,
+      process.env.JWT_SECRET_KEY!,
       { expiresIn: "1h" }
     );
 
@@ -44,7 +44,7 @@ export const sendResetEmail = async (req: Request, res: Response) => {
     // Send email
     await sgMail.send({
       to: toEmail,
-      from: process.env.SENDGRID_FROM_EMAIL!,
+      from: 'official@coceducation.com',
       subject: "Reset Your Password",
       html: `
          <p>Hi,</p>
