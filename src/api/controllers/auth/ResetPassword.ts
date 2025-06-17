@@ -44,7 +44,7 @@ export const sendResetEmail = async (req: Request, res: Response) => {
     // Send email
     await sgMail.send({
       to: toEmail,
-      from: 'official@coceducation.com',
+      from: process.env.SENDGRID_FROM_EMAIL!,
       subject: "Reset Your Password",
       html: `
          <p>Hi,</p>
