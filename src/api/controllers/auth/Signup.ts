@@ -118,6 +118,27 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         return;
 
       }
+
+      try {
+        const isValidPracticeOrderRes = await axios.get(
+          `http://www.crc.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
+          { headers: { 'Accept': 'application/json' } }
+        );
+
+        if (!isValidPracticeOrderRes.data?.IsSuccess) {
+          await queryRunner.rollbackTransaction();
+          res.status(400).json({ status: "error", message: "Invalid CFM enrollment number!" });
+          return;
+
+        }
+
+        enrollmentType = 'practice';
+      } catch (error) {
+        console.error("Error in enrollment verification:", error);
+        await queryRunner.rollbackTransaction();
+        res.status(400).json({ status: "error", message: "Error in enrollment verification!" });
+        return;
+      }
     }
 
     const newUser = userLoginRepository.create({
@@ -125,8 +146,8 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       lastName,
       emailAddress: email,
       password: password,
-      enrollmentNumber: enrollmentNumber || null, 
-      enrollmentType: enrollmentType as 'basic' | 'practice', 
+      enrollmentNumber: enrollmentNumber || null,
+      enrollmentType: enrollmentType as 'basic' | 'practice',
       createdBy,
       updatedBy,
     });
