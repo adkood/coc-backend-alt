@@ -87,7 +87,62 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
+    // let enrollmentType;
+    // if (userType === 'new') {
+    //   enrollmentType = 'basic';
+    // } else {
+    //   if (!enrollmentNumber) {
+    //     await queryRunner.rollbackTransaction();
+    //     res.status(400).json({ status: "error", message: "Enrollment number is required for non-new users" });
+    //     return;
+    //   }
+
+    //   try {
+    //     const isValidPracticeOrderRes = await axios.get(
+    //       `http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
+    //       { headers: { 'Accept': 'application/json' } }
+    //     );
+
+    //     if (!isValidPracticeOrderRes.data?.IsSuccess) {
+    //       await queryRunner.rollbackTransaction();
+    //       res.status(400).json({ status: "error", message: "Invalid CFM enrollment number!" });
+    //       return;
+
+    //     }
+
+    //     enrollmentType = 'practice';
+    //   } catch (error) {
+    //     console.error("Error in enrollment verification:", error);
+    //     await queryRunner.rollbackTransaction();
+    //     res.status(400).json({ status: "error", message: "Error in enrollment verification!" });
+    //     return;
+
+    //   }
+
+    //   try {
+    //     const isValidPracticeOrderRes = await axios.get(
+    //       `http://www.crc.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
+    //       { headers: { 'Accept': 'application/json' } }
+    //     );
+
+    //     if (!isValidPracticeOrderRes.data?.IsSuccess) {
+    //       await queryRunner.rollbackTransaction();
+    //       res.status(400).json({ status: "error", message: "Invalid CFM enrollment number!" });
+    //       return;
+
+    //     }
+
+    //     enrollmentType = 'practice';
+    //   } catch (error) {
+    //     console.error("Error in enrollment verification:", error);
+    //     await queryRunner.rollbackTransaction();
+    //     res.status(400).json({ status: "error", message: "Error in enrollment verification!" });
+    //     return;
+    //   }
+    // }
+
     let enrollmentType;
+
     if (userType === 'new') {
       enrollmentType = 'basic';
     } else {
@@ -97,49 +152,37 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      try {
-        const isValidPracticeOrderRes = await axios.get(
-          `http://www.crm.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
-          { headers: { 'Accept': 'application/json' } }
-        );
+      const endpoints = [
+        'http://www.crm.coceducation.com/API/VerifyOrderNo',
+        'http://www.crc.coceducation.com/API/VerifyOrderNo',
+      ];
 
-        if (!isValidPracticeOrderRes.data?.IsSuccess) {
-          await queryRunner.rollbackTransaction();
-          res.status(400).json({ status: "error", message: "Invalid CFM enrollment number!" });
-          return;
+      let isValid = false;
 
+      for (const endpoint of endpoints) {
+        try {
+          const response = await axios.get(`${endpoint}?orderNo=${enrollmentNumber}`, {
+            headers: { 'Accept': 'application/json' },
+          });
+
+          if (response.data?.IsSuccess) {
+            isValid = true;
+            break;
+          }
+        } catch (error: any) {
+          console.error(`Error verifying enrollment number at ${endpoint}:`, error.message);
         }
-
-        enrollmentType = 'practice';
-      } catch (error) {
-        console.error("Error in enrollment verification:", error);
-        await queryRunner.rollbackTransaction();
-        res.status(400).json({ status: "error", message: "Error in enrollment verification!" });
-        return;
-
       }
 
-      try {
-        const isValidPracticeOrderRes = await axios.get(
-          `http://www.crc.coceducation.com/API/VerifyOrderNo?orderNo=${enrollmentNumber}`,
-          { headers: { 'Accept': 'application/json' } }
-        );
-
-        if (!isValidPracticeOrderRes.data?.IsSuccess) {
-          await queryRunner.rollbackTransaction();
-          res.status(400).json({ status: "error", message: "Invalid CFM enrollment number!" });
-          return;
-
-        }
-
-        enrollmentType = 'practice';
-      } catch (error) {
-        console.error("Error in enrollment verification:", error);
+      if (!isValid) {
         await queryRunner.rollbackTransaction();
-        res.status(400).json({ status: "error", message: "Error in enrollment verification!" });
+        res.status(400).json({ status: "error", message: "Invalid CFM enrollment number!" });
         return;
       }
+
+      enrollmentType = 'practice';
     }
+
 
     const newUser = userLoginRepository.create({
       firstName,
