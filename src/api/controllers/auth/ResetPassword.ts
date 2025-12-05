@@ -88,7 +88,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     let payload: any;
     try {
-      payload = jwt.verify(token, process.env.ACCESS_SECRET_KEY!);
+      payload = jwt.verify(token, process.env.SENDGRID_FROM_EMAIL!);
     } catch (err) {
       return res.status(400).json({ status: "error", message: "Invalid or expired token" });
     }
